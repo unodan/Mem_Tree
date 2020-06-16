@@ -43,24 +43,30 @@ class Tree(deque):
     def __init__(self, parent, data):
         super().__init__()
 
-        self.children = deque()
-        for item in data:
-            self.add(parent, **item)
+        self.populate('', data)
 
     def add(self, parent, index=END, **data):
         if not parent:
             if index == END:
-                self.children.append(data)
+                self.append(data)
             else:
-                self.children.insert(index, **data)
+                self.insert(index, **data)
+
+    def populate(self, parent, data):
+        def walk(_node):
+            self.append(data)
+            print(111, _node)
+
+        for node in data:
+            walk(node)
 
 
 def main():
     t = Tree('', cfg)
     t.add('', **{'test': 123})
 
-    for item in t.children:
-        print(item)
+    for item in t:
+        print(222, item)
 
 
 if __name__ == '__main__':
