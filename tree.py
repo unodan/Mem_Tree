@@ -41,6 +41,12 @@ class Leaf:
         if 'name' in data:
             self.name = data['name']
 
+    def __len__(self):
+        return len(self.name)
+
+    def __str__(self):
+        return self.name
+
     def index(self, item, start=None, stop=None):
         return self._parent.index(item)
 
@@ -78,6 +84,9 @@ class Node(deque):
 
     def __len__(self):
         return len(self.children)
+
+    def __str__(self):
+        return self.name
 
     @staticmethod
     def is_node(item):
@@ -135,6 +144,13 @@ class Node(deque):
     def append(self, *args, **kwargs):
         self.children.append(*args, **kwargs)
 
+    def get_by_name(self, name):
+        for c in self.children:
+            if c.name == name:
+                return c
+            if self.is_node(c):
+                return c.get_by_name(name)
+
 
 class Tree(Node):
     def __init__(self, data):
@@ -175,6 +191,11 @@ def main():
     print('-------------------------------')
     print(1, t.next(t.prev()).name)
     print(2, t.prev().name)
+
+    x = t.get_by_name('Node 1')
+    x = t.get_by_name('Node 1').get_by_name('Node 1-1')
+
+    print(x.name)
 
 
 if __name__ == '__main__':
