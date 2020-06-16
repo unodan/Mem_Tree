@@ -55,9 +55,13 @@ class Tree(deque):
                 self.children.insert(index, **data)
 
 
-t = Tree('', cfg)
+def main():
+    t = Tree('', cfg)
+    t.add('', **{'test': 123})
 
-t.add('', **{'test': 123})
+    for item in t.children:
+        print(item)
 
-for item in t.children:
-    print(item)
+
+if __name__ == '__main__':
+    main()
