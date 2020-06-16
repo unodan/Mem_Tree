@@ -29,6 +29,7 @@ cfg = (
         'text': 'text n1',
         'i1': {'text': 'test i 1'}
     }},
+    {'i2': 'text i1'},
     {'n2': {
         'text': 'text n1',
         'i1': {'text': 'test i 1'}
@@ -40,9 +41,8 @@ END = -1
 
 
 class Tree(deque):
-    def __init__(self, parent, data):
+    def __init__(self, data):
         super().__init__()
-
         self.populate('', data)
 
     def add(self, parent, index=END, **data):
@@ -54,19 +54,19 @@ class Tree(deque):
 
     def populate(self, parent, data):
         def walk(_node):
-            self.append(data)
-            print(111, _node)
+            for k, x in _node.items():
+                if isinstance(x, dict):
+                    print('node:', k)
+                else:
+                    print('leaf:', k, x)
 
         for node in data:
             walk(node)
 
 
 def main():
-    t = Tree('', cfg)
+    t = Tree(cfg)
     t.add('', **{'test': 123})
-
-    for item in t:
-        print(222, item)
 
 
 if __name__ == '__main__':
