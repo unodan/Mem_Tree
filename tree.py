@@ -1,44 +1,6 @@
 from collections import deque
 
 
-def dump(data, indent=None):
-    indent = indent if indent else '.'
-
-    print('-------------------------------------------------------------------------------------------------------')
-    if data:
-        def walk(_data, count):
-            count += 1
-            for key, value in _data.items():
-                if isinstance(value, dict):
-                    print(indent * count, key)
-                    walk(value, count)
-                else:
-                    if isinstance(value, str):
-                        value = f'"{value}"'
-                    print(indent * count, key, f'value={value}')
-
-        walk(data, 0)
-    else:
-        print(' (No Data)')
-
-    print('-------------------------------------------------------------------------------------------------------')
-
-
-cfg1 = (
-    {
-        'text': 'node 1',
-        'children': (
-            {
-                'text': 'node 2',
-                'children': (
-                    {'text': 'testing s1'},
-                ),
-            },
-        )
-    },
-)
-
-
 cfg = (
     {
         'text': 'Node 1',
@@ -58,15 +20,6 @@ cfg = (
         'text': 'Leaf 2',
     },
 )
-
-START = 0
-END = -1
-
-
-def has_nodes(obj):
-    if 'children' in obj:
-        return True
-    return False
 
 
 class Leaf:
