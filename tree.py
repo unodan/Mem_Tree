@@ -6,7 +6,7 @@ END = -1
 class Leaf:
     def __init__(self, data):
         super().__init__()
-        self._parent = None
+        self.parent = None
         if 'name' in data:
             self.name = data['name']
 
@@ -16,20 +16,17 @@ class Leaf:
     def __str__(self):
         return self.name
 
-    def parent(self):
-        return self._parent
-
 
 class Node(deque):
     def __init__(self, data=None):
         super().__init__()
         self.name = None
-        self._parent = None
+        self.parent = None
 
         if data:
             self.populate(data)
 
-    def __str__(self):
+    def __repr__(self):
         return self.name
 
     @staticmethod
@@ -37,15 +34,15 @@ class Node(deque):
         return True if isinstance(item, Node) else False
 
     def prev(self, item=None):
-        if self._parent:
-            parent = self._parent
+        if self.parent:
+            parent = self.parent
         else:
             parent = self
 
         items = list(parent)
         idx = 0 if not item else items.index(item)-1
 
-        if not idx and self._parent:
+        if not idx and self.parent:
             idx = items.index(self)-1
             if idx >= 0:
                 return items[idx]
@@ -54,8 +51,8 @@ class Node(deque):
             return items[idx]
 
     def next(self, item=None):
-        if self._parent:
-            parent = self._parent
+        if self.parent:
+            parent = self.parent
         else:
             parent = self
 
@@ -77,24 +74,30 @@ class Node(deque):
 
         walk(parent)
 
+    def append(self, data):
+        idx = len(self)
+        super(Node, self).append(data)
+        list(self)[idx].parent = self
+
     def insert(self, idx, data):
         if idx == END:
             idx = len(self)
-        return super(Node, self).insert(idx, data)
+        elif idx < 0:
+            idx = 0
 
-    def parent(self):
-        return self._parent
+        super(Node, self).insert(idx, data)
+        list(self)[idx].parent = self
 
     def populate(self, config):
         for item in config:
             if 'children' in item:
                 n = Node(item.pop('children', ()))
                 n.name = item['name']
-                n._parent = self
+                n.parent = self
                 self.append(n)
             else:
                 leaf = Leaf(item)
-                leaf._parent = self
+                leaf.parent = self
                 self.append(leaf)
 
     def get_children(self):
@@ -147,17 +150,23 @@ def main():
     t = Tree()
     leaf = Leaf({'name': 'My Leaf'})
     t.insert(0, leaf)
-    print(t.next())
+    print(t.next().parent)
 
     print('-------------------------------')
     t = Tree(cfg)
-    print(t.parent())
+    print(t.parent)
     print('-------------------------------')
     t.dump()
     print('-------------------------------')
     leaf = Leaf({'name': 'My New Leaf'})
     print(leaf)
-    print('parent->', leaf.parent(), '( . is the root of the tree)')
+
+    t.append(leaf)
+    print('parent->', leaf.parent)
+
+    t.insert(END, leaf)
+    print('parent->', leaf.parent)
+
     print('-------------------------------')
     print(1, t.prev())
     print(2, t.next())
@@ -168,7 +177,7 @@ def main():
     print(7, t.prev(t.next(t.next(t.next()))))
     x = t.get_by_name('Node 1').get_by_name('Node 1-1')
     print(8, f'{x.name}, {x.prev()}')
-    print(9, f'{x.name}, {x.parent()}')
+    print(9, f'{x.name}, {x.parent}')
     x.insert(1, leaf)
     print('-------------------------------')
 
