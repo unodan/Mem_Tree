@@ -1,10 +1,12 @@
 from collections import deque
 
+END = -1
+
 
 class Leaf:
-    def __init__(self, parent, data):
+    def __init__(self, data):
         super().__init__()
-        self._parent = parent
+        self._parent = None
         if 'name' in data:
             self.name = data['name']
 
@@ -19,12 +21,13 @@ class Leaf:
 
 
 class Node(deque):
-    def __init__(self, parent, data):
+    def __init__(self, data=None):
         super().__init__()
         self.name = None
-        self._parent = parent
+        self._parent = None
 
-        self.populate(data)
+        if data:
+            self.populate(data)
 
     def __str__(self):
         return self.name
@@ -74,14 +77,25 @@ class Node(deque):
 
         walk(parent)
 
+    def insert(self, idx, data):
+        if idx == END:
+            idx = len(self)
+        return super(Node, self).insert(idx, data)
+
+    def parent(self):
+        return self._parent
+
     def populate(self, config):
         for item in config:
             if 'children' in item:
-                n = Node(self, item.pop('children', ()))
+                n = Node(item.pop('children', ()))
                 n.name = item['name']
+                n._parent = self
                 self.append(n)
             else:
-                self.append(Leaf(self, item))
+                leaf = Leaf(item)
+                leaf._parent = self
+                self.append(leaf)
 
     def get_children(self):
         return list(self)
@@ -93,16 +107,10 @@ class Node(deque):
             if self.is_node(c):
                 return c.get_by_name(name)
 
-    def insert(self, idx, data):
-        return super(Node, self).insert(idx, data)
-
-    def parent(self):
-        return self._parent
-
 
 class Tree(Node):
-    def __init__(self, data):
-        super().__init__(None, data)
+    def __init__(self, data=None):
+        super().__init__(data)
         self.name = '.'
 
 
@@ -135,13 +143,19 @@ def main():
         },
     )
 
-    t = Tree(cfg)
     print('-------------------------------')
+    t = Tree()
+    leaf = Leaf({'name': 'My Leaf'})
+    t.insert(0, leaf)
+    print(t.next())
+
+    print('-------------------------------')
+    t = Tree(cfg)
     print(t.parent())
     print('-------------------------------')
     t.dump()
     print('-------------------------------')
-    leaf = Leaf(t, {'name': 'My Leaf'})
+    leaf = Leaf({'name': 'My New Leaf'})
     print(leaf)
     print('parent->', leaf.parent(), '( . is the root of the tree)')
     print('-------------------------------')
@@ -150,19 +164,18 @@ def main():
     print(3, t.next(t.next()))
     print(4, t.next(t.next(t.next())))
     print(5, t.next(t.next(t.next(t.next()))))
-    print(6, t.next(t.next()))
-    print(7, t.prev(t.next(t.next())))
-    print(8, t.prev(t.next(t.next(t.next()))))
+    print(6, t.prev(t.next(t.next())))
+    print(7, t.prev(t.next(t.next(t.next()))))
     x = t.get_by_name('Node 1').get_by_name('Node 1-1')
-    print(9, f'{x.name}, {x.prev()}')
-    print(10, f'{x.name}, {x.parent()}')
+    print(8, f'{x.name}, {x.prev()}')
+    print(9, f'{x.name}, {x.parent()}')
     x.insert(1, leaf)
     print('-------------------------------')
 
     parent = t.get_by_name('Node 1').get_by_name('Node 1-1')
 
-    leaf = Leaf(parent, {'name': 'Leaf Insert Test'})
-    parent.insert(2, leaf)
+    leaf = Leaf({'name': 'Leaf Insert Test'})
+    parent.insert(END, leaf)
 
     t.dump()
 
