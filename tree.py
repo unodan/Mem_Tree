@@ -47,30 +47,8 @@ class Leaf:
     def __str__(self):
         return self.name
 
-    def index(self, item, start=None, stop=None):
-        return self._parent.index(item)
-
     def parent(self):
         return self._parent
-
-    def prev(self, item=None):
-        idx = self.index(item) - 1
-        if idx >= 0:
-            return idx
-        else:
-            return
-
-    def next(self, item=None):
-        if not item:
-            item = self
-        idx = self.index(item) + 1
-
-        if idx >= len(self.parent()) or idx < 0:
-            idx = 0
-            if self.index(self) <= len(self.parent()):
-                return self.parent().children[idx+1]
-
-        return self.parent().children[idx+1]
 
 
 class Node(deque):
@@ -78,12 +56,8 @@ class Node(deque):
         super().__init__()
         self.name = None
         self._parent = parent
-        self.children = deque()
 
         self.populate(data)
-
-    def __len__(self):
-        return len(self.children)
 
     def __str__(self):
         return self.name
@@ -106,50 +80,48 @@ class Node(deque):
         walk(parent)
 
     def prev(self, item=None):
-        if not item:
-            return self
+        if self._parent:
+            parent = self._parent
+        else:
+            parent = self
 
-        idx = item.index(item) - 1
-        if idx < 0:
-            return None
-
-        return self.children[idx]
+        items = list(parent)
+        idx = 0 if not item else items.index(item) - 1
+        if idx < len(self):
+            return items[idx]
 
     def next(self, item=None):
-        if not item:
-            item = self
+        if self._parent:
+            parent = self._parent
+        else:
+            parent = self
 
-        idx = item.index(item) + 1
-        if idx >= len(self) or idx < 0:
-            return None
-
-        return self.children[idx]
-
-    def index(self, item, start=None, stop=None):
-        return self.children.index(item)
+        items = list(parent)
+        idx = 0 if not item else items.index(item) + 1
+        if idx < len(self):
+            return items[idx]
 
     def populate(self, config):
         for item in config:
             if 'children' in item:
                 n = Node(self, item.pop('children', ()))
                 n.name = item['name']
-                self.children.append(n)
+                self.append(n)
             else:
-                self.children.append(Leaf(self, item))
+                self.append(Leaf(self, item))
 
-    def get_children(self, parent=None):
-        if not parent:
-            return self.children
-
-    def append(self, *args, **kwargs):
-        self.children.append(*args, **kwargs)
+    def get_children(self):
+        return list(self)
 
     def get_by_name(self, name):
-        for c in self.children:
+        for c in self:
             if c.name == name:
                 return c
             if self.is_node(c):
                 return c.get_by_name(name)
+
+    def insert(self, idx, data):
+        return super(Node, self).insert(idx, data)
 
 
 class Tree(Node):
@@ -161,41 +133,33 @@ class Tree(Node):
         parent = self if not item else item.parent()
         return parent
 
-    def insert(self, parent=None, index=-1, **data):
-        if not parent:
-            parent = self
-
-        if has_children(data):
-            print(11111)
-        else:
-            leaf = Leaf(self, data)
-            if index == -1:
-                return parent.append(leaf)
-            elif parent.name == '.':
-                self.children.insert(index, leaf)
-
 
 def main():
     t = Tree(cfg)
     print('-------------------------------')
     t.dump()
     print('-------------------------------')
-    t.insert(index=2, **{'name': 'Leaf 3'})
-    t.dump()
+    leaf = Leaf(t, {'name': 'Leaf 333333333'})
+    print(1, leaf, leaf.parent())
     print('-------------------------------')
-
-    print(1, t.next().name)
-    print(2, t.next(t.next()).name)
-    print(3, t.next(t.next(t.next())).name)
-    print(4, t.next(t.next(t.next(t.next()))))
+    print(2, t.next())
     print('-------------------------------')
-    print(1, t.next(t.prev()).name)
-    print(2, t.prev().name)
-
-    x = t.get_by_name('Node 1')
+    print(3, t.next())
+    print(4, t.next(t.next()))
+    print(5, t.next(t.next(t.next())))
+    print(6, t.next(t.next(t.next(t.next()))))
+    print(7, t.prev().name)
+    print(8, t.prev(t.next(t.next(t.next()))))
+    print('-------------------------------')
     x = t.get_by_name('Node 1').get_by_name('Node 1-1')
+    print(9, x.name)
+    print('-------------------------------')
 
-    print(x.name)
+    parent = t.get_by_name('Node 1').get_by_name('Node 1-1')
+    leaf = Leaf(parent, {'name': 'Leaf 3'})
+    t.get_by_name('Node 1').get_by_name('Node 1-1').insert(0, leaf)
+    print('-------------------------------')
+    t.dump()
 
 
 if __name__ == '__main__':
