@@ -1,39 +1,6 @@
 from collections import deque
 
 
-cfg = (
-    {
-        'name': 'Node 1',
-        'children': (
-            {
-                'name': 'Leaf n1'
-            },
-            {
-                'name': 'Node 1-1',
-                'children': (
-                    {
-                        'name': 'Leaf 1-1'
-                    },
-                    {
-                        'name': 'Leaf 1-2'
-                    },
-                )
-            },
-        )
-    },
-    {
-        'name': 'Leaf 1',
-    },
-    {
-        'name': 'Leaf 2',
-    },
-)
-
-
-def has_children(_dict):
-    return True if 'children' in _dict else False
-
-
 class Leaf:
     def __init__(self, parent, data):
         super().__init__()
@@ -66,19 +33,6 @@ class Node(deque):
     def is_node(item):
         return True if isinstance(item, Node) else False
 
-    def dump(self, parent=None, indent=3):
-        if not parent:
-            parent = self
-
-        def walk(_parent, level=0):
-            for _node in _parent.get_children():
-                pad = '' if not level else ' ' * indent * level
-                print(pad, _node.name)
-                if _parent.is_node(_node):
-                    walk(_node, level+1)
-
-        walk(parent)
-
     def prev(self, item=None):
         if self._parent:
             parent = self._parent
@@ -106,6 +60,19 @@ class Node(deque):
         idx = 0 if not item else items.index(item)+1
         if idx < len(self):
             return items[idx]
+
+    def dump(self, parent=None, indent=3):
+        if not parent:
+            parent = self
+
+        def walk(_parent, level=0):
+            for _node in _parent.get_children():
+                pad = '' if not level else ' ' * indent * level
+                print(pad, _node.name)
+                if _parent.is_node(_node):
+                    walk(_node, level+1)
+
+        walk(parent)
 
     def populate(self, config):
         for item in config:
@@ -140,6 +107,34 @@ class Tree(Node):
 
 
 def main():
+    cfg = (
+        {
+            'name': 'Node 1',
+            'children': (
+                {
+                    'name': 'Leaf n1'
+                },
+                {
+                    'name': 'Node 1-1',
+                    'children': (
+                        {
+                            'name': 'Leaf 1-1'
+                        },
+                        {
+                            'name': 'Leaf 1-2'
+                        },
+                    )
+                },
+            )
+        },
+        {
+            'name': 'Leaf 1',
+        },
+        {
+            'name': 'Leaf 2',
+        },
+    )
+
     t = Tree(cfg)
     print('-------------------------------')
     print(t.parent())
@@ -165,8 +160,10 @@ def main():
     print('-------------------------------')
 
     parent = t.get_by_name('Node 1').get_by_name('Node 1-1')
-    leaf = Leaf(parent, {'name': 'Leaf Test Insert'})
-    t.get_by_name('Node 1').get_by_name('Node 1-1').insert(0, leaf)
+
+    leaf = Leaf(parent, {'name': 'Leaf Insert Test'})
+    parent.insert(2, leaf)
+
     t.dump()
 
 
