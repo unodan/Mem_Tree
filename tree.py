@@ -86,8 +86,14 @@ class Node(deque):
             parent = self
 
         items = list(parent)
-        idx = 0 if not item else items.index(item) - 1
-        if idx < len(self):
+        idx = 0 if not item else items.index(item)-1
+
+        if not idx and self._parent:
+            idx = items.index(self)-1
+            if idx >= 0:
+                return items[idx]
+
+        if 0 <= idx < len(self) and item:
             return items[idx]
 
     def next(self, item=None):
@@ -97,7 +103,7 @@ class Node(deque):
             parent = self
 
         items = list(parent)
-        idx = 0 if not item else items.index(item) + 1
+        idx = 0 if not item else items.index(item)+1
         if idx < len(self):
             return items[idx]
 
@@ -123,42 +129,44 @@ class Node(deque):
     def insert(self, idx, data):
         return super(Node, self).insert(idx, data)
 
+    def parent(self):
+        return self._parent
+
 
 class Tree(Node):
     def __init__(self, data):
         super().__init__(None, data)
         self.name = '.'
 
-    def parent(self, item=None):
-        parent = self if not item else item.parent()
-        return parent
-
 
 def main():
     t = Tree(cfg)
     print('-------------------------------')
+    print(t.parent())
+    print('-------------------------------')
     t.dump()
     print('-------------------------------')
-    leaf = Leaf(t, {'name': 'Leaf 333333333'})
-    print(1, leaf, leaf.parent())
+    leaf = Leaf(t, {'name': 'My Leaf'})
+    print(leaf)
+    print('parent->', leaf.parent(), '( . is the root of the tree)')
     print('-------------------------------')
+    print(1, t.prev())
     print(2, t.next())
-    print('-------------------------------')
-    print(3, t.next())
-    print(4, t.next(t.next()))
-    print(5, t.next(t.next(t.next())))
-    print(6, t.next(t.next(t.next(t.next()))))
-    print(7, t.prev().name)
+    print(3, t.next(t.next()))
+    print(4, t.next(t.next(t.next())))
+    print(5, t.next(t.next(t.next(t.next()))))
+    print(6, t.next(t.next()))
+    print(7, t.prev(t.next(t.next())))
     print(8, t.prev(t.next(t.next(t.next()))))
-    print('-------------------------------')
     x = t.get_by_name('Node 1').get_by_name('Node 1-1')
-    print(9, x.name)
+    print(9, f'{x.name}, {x.prev()}')
+    print(10, f'{x.name}, {x.parent()}')
+    x.insert(1, leaf)
     print('-------------------------------')
 
     parent = t.get_by_name('Node 1').get_by_name('Node 1-1')
-    leaf = Leaf(parent, {'name': 'Leaf 3'})
+    leaf = Leaf(parent, {'name': 'Leaf Test Insert'})
     t.get_by_name('Node 1').get_by_name('Node 1-1').insert(0, leaf)
-    print('-------------------------------')
     t.dump()
 
 
