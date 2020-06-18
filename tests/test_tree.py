@@ -19,14 +19,24 @@ class TestTree(unittest.TestCase):
         # Action, set a target.
         t = self.t
         target = t[0][1]  # name = Node 1-1, id = 3
-
         # Asert, make sure we have the correct target
         self.assertEqual(3, target.id)
         self.assertEqual('Node 1-1', target.name)
-        # Action, get target by id.
+
+        # Asert, target id = get item id.
         self.assertEqual(target, t.get(3))
-        # Action, get target by name.
-        self.assertEqual(target, t[0].get('Node 1-1'))
+        # Asert, target name = get item name.
+        self.assertEqual(target, t.get('Node 1-1'))
+
+        target = t[0][1][1]  # name = Leaf 1-2, id = 5
+        # Asert, make sure we have the correct target
+        self.assertEqual(5, target.id)
+        self.assertEqual('Leaf 1-2', target.name)
+
+        # Asert, target id = get item id.
+        self.assertEqual(target, t.get(5))
+        # Asert, target name = get item name.
+        self.assertEqual(target, t.get('Leaf 1-2'))
 
     def test_append(self):
         # Action, append leaf in the root of tree.

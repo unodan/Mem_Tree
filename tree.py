@@ -10,7 +10,6 @@ class Leaf:
         super().__init__()
         self.id = None
         self.parent = None
-
         self.name = data['name'] if isinstance(data, dict) else data[0]['name']
 
     @property
@@ -75,13 +74,13 @@ class Node(Leaf, deque):
         item.parent = self
 
     def to_list(self, parent=None):
-        def get_data(_item, _data):
+        def set_data(_item, _data):
             for node in _item:
                 _item_data = {'name': node.name}
                 _data.append(_item_data)
                 if node.is_node():
                     _item_data['children'] = []
-                    get_data(node, _item_data['children'])
+                    set_data(node, _item_data['children'])
 
         data = []
         parent = parent if parent else self
@@ -89,7 +88,7 @@ class Node(Leaf, deque):
             if item.is_node():
                 item_data = {'name': item.name, 'children': []}
                 data.append(item_data)
-                get_data(item, item_data['children'])
+                set_data(item, item_data['children'])
             else:
                 item_data = {'name': item.name}
                 data.append(item_data)
@@ -97,7 +96,7 @@ class Node(Leaf, deque):
 
     def populate(self, data):
         for cfg in data:
-            item = Leaf(cfg) if 'children' not in cfg else Node(cfg.pop('children', ()))
+            item = Node(cfg.pop('children', ())) if 'children' in cfg else Leaf(cfg)
             item.parent = self
             item.name = cfg['name']
             super(Node, self).append(item)
@@ -121,6 +120,8 @@ class Node(Leaf, deque):
                     _result = walk(child)
                     if _result:
                         return _result
+                elif child.id == _id:
+                    return child
 
         for item in self:
             result = walk(item)
@@ -128,9 +129,25 @@ class Node(Leaf, deque):
                 return result
 
     def get_by_name(self, name):
-        for c in self:
-            if c.name == name:
-                return c
+        def walk(_item):
+            if _item.name == name:
+                return _item
+
+            if not _item.is_node():
+                return
+
+            for child in _item:
+                if child.is_node():
+                    _result = walk(child)
+                    if _result:
+                        return _result
+                elif child.name == name:
+                    return child
+
+        for item in self:
+            result = walk(item)
+            if result:
+                return result
 
 
 class Tree(Node):
