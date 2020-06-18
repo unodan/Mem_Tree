@@ -1,6 +1,5 @@
-from collections import deque, OrderedDict
+from collections import deque
 import config
-from copy import deepcopy
 
 END = -1
 START = 0
@@ -43,7 +42,7 @@ class Node(Leaf, deque):
         if data:
             self.populate(data)
 
-    def dump(self, parent=None, indent=3):
+    def show(self, parent=None, indent=3):
         def walk(_parent, level=0):
             for _node in _parent:
                 pad = '' if not level else ' ' * (indent * level)
@@ -116,20 +115,20 @@ class Tree(Node):
         self.size += 1
         return self.size
 
-    def reindex(self):
+    def reindex(self, start=0):
         def walk(_parent, level=0):
             for _node in _parent:
                 _node.id = self.next_id()
                 if _parent.is_node(_node):
                     walk(_node, level+1)
+
+        self.size = start
         walk(self)
 
 
 def main():
     t = Tree(config.data)
-    t.dump()
-
-    # print(t[0][1][0].parent.name, len(t))
+    t.show()
 
 
 if __name__ == '__main__':

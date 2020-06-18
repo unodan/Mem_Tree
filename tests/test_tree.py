@@ -155,7 +155,6 @@ class TestTree(unittest.TestCase):
         _dump = json.dumps(t.to_list(), sort_keys=True)
         # Asert, tree data == config data.
         self.assertEqual(_list, _dump)
-        t.dump()
 
     def test_get_by_name(self):
         # Action, assign source and target.
