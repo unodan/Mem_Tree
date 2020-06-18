@@ -1,4 +1,4 @@
-config = (
+data = (
     {
         'name': 'Node 1',
         'children': (

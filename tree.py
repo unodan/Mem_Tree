@@ -1,5 +1,6 @@
 from collections import deque, OrderedDict
-import setup
+import config
+from copy import deepcopy
 
 END = -1
 START = 0
@@ -8,14 +9,14 @@ START = 0
 class Leaf:
     def __init__(self, parent, data):
         super().__init__()
-        self.name = None
-        self.name = data['name'] if isinstance(data, dict) else data[0]['name']
-        self.parent = parent
+        self.id = None
+        self.parent = None
 
-    @property
-    def tree(self):
-        parent = self.parent
-        print(1111, self.name, id(self.parent), type(self.parent))
+        self.name = data['name'] if isinstance(data, dict) else data[0]['name']
+
+    def tree(self, parent=None):
+        parent = self if not parent else parent
+
         while parent:
             parent = parent.parent
 
@@ -47,18 +48,20 @@ class Node(Leaf, deque):
             for _node in _parent:
                 pad = '' if not level else ' ' * (indent * level)
                 if _node.parent:
-                    print(pad, _node.name, _node.parent.name)
+                    print(f'{_node.id}   {pad}', _node.name)
                 if _parent.is_node(_node):
                     walk(_node, level+1)
 
         if not parent:
             parent = self
         print('-----------------------------------------------------')
+        print('ID : Items')
+        print('-----------------------------------------------------')
         walk(parent)
         print('-----------------------------------------------------')
 
     def append(self, data):
-        self.tree
+        # self.tree(data)
         super(Node, self).append(data)
 
     def insert(self, idx, data):
@@ -89,8 +92,8 @@ class Node(Leaf, deque):
                 data.append(item_data)
         return data
 
-    def populate(self, config):
-        for cfg in config:
+    def populate(self, data):
+        for cfg in data:
             item = Leaf(self, cfg) if 'children' not in cfg else Node(self, cfg.pop('children', ()))
             item.parent = self
             item.name = cfg['name']
@@ -107,15 +110,23 @@ class Tree(Node):
         super().__init__(None, data)
         self.size = 0
         self.name = '.'
+        self.reindex()
 
     def next_id(self):
-        idx = self.size
         self.size += 1
-        return idx
+        return self.size
+
+    def reindex(self):
+        def walk(_parent, level=0):
+            for _node in _parent:
+                _node.id = self.next_id()
+                if _parent.is_node(_node):
+                    walk(_node, level+1)
+        walk(self)
 
 
 def main():
-    t = Tree(setup.config)
+    t = Tree(config.data)
     t.dump()
 
     # print(t[0][1][0].parent.name, len(t))
