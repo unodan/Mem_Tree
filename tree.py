@@ -1,4 +1,5 @@
 from collections import deque, OrderedDict
+import setup
 
 END = -1
 START = 0
@@ -14,7 +15,7 @@ class Leaf:
     @property
     def tree(self):
         parent = self.parent
-        # print(1111, self.name, id(self.parent), type(self.parent))
+        print(1111, self.name, id(self.parent), type(self.parent))
         while parent:
             parent = parent.parent
 
@@ -57,7 +58,7 @@ class Node(Leaf, deque):
         print('-----------------------------------------------------')
 
     def append(self, data):
-        data.tree
+        self.tree
         super(Node, self).append(data)
 
     def insert(self, idx, data):
@@ -90,13 +91,9 @@ class Node(Leaf, deque):
 
     def populate(self, config):
         for cfg in config:
-            if 'children' not in cfg:
-                item = Leaf(self, cfg)
-            else:
-                item = Node(self, cfg.pop('children', ()))
-
-            item.name = cfg['name']
+            item = Leaf(self, cfg) if 'children' not in cfg else Node(self, cfg.pop('children', ()))
             item.parent = self
+            item.name = cfg['name']
             self.append(item)
 
     def get_by_name(self, name):
@@ -118,35 +115,7 @@ class Tree(Node):
 
 
 def main():
-    cfg = (
-        {
-            'name': 'Node 1',
-            'children': (
-                {
-                    'name': 'Leaf n1'
-                },
-                {
-                    'name': 'Node 1-1',
-                    'children': (
-                        {
-                            'name': 'Leaf 1-1'
-                        },
-                        {
-                            'name': 'Leaf 1-2'
-                        },
-                    )
-                },
-            )
-        },
-        {
-            'name': 'Leaf 1',
-        },
-        {
-            'name': 'Leaf 2',
-        },
-    )
-
-    t = Tree(cfg)
+    t = Tree(setup.config)
     t.dump()
 
     # print(t[0][1][0].parent.name, len(t))
