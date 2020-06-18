@@ -145,17 +145,15 @@ class TestTree(unittest.TestCase):
                 'name': 'Leaf 2',
             },
         )
-        # Asert, item is in list.
+        # Action, get copy of tree data then empty the tree.
         _list = json.dumps(cfg, sort_keys=True)
         t.clear()
         # Asert, tree is empty.
-        self.assertEqual(t, Tree())
-
-        # Action, populate tree with config.
+        self.assertEqual(len(t), 0)
+        # Action, populate tree with config data.
         t.populate(cfg)
         _dump = json.dumps(t.to_list(), sort_keys=True)
-
-        # Asert, result == source.
+        # Asert, tree data == config data.
         self.assertEqual(_list, _dump)
         t.dump()
 

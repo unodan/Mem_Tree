@@ -4,39 +4,17 @@ END = -1
 START = 0
 
 
-def dump(data, indent=None):
-    indent = indent if indent else '.'
-
-    print('-------------------------------------------------------------------------------------------------------')
-    if data:
-        def walk(_data, count):
-            count += 1
-            for key, value in _data.items():
-                if isinstance(value, dict):
-                    print(indent * count, key)
-                    walk(value, count)
-                else:
-                    if isinstance(value, str):
-                        value = f'"{value}"'
-                    print(indent * count, key, f'value={value}')
-
-        walk(data, 0)
-    else:
-        print(' (No Data)')
-
-    print('-------------------------------------------------------------------------------------------------------')
-
-
 class Leaf:
     def __init__(self, parent, data):
         super().__init__()
         self.name = None
+        self.name = data['name'] if isinstance(data, dict) else data[0]['name']
         self.parent = parent
 
     @property
     def tree(self):
         parent = self.parent
-
+        # print(1111, self.name, id(self.parent), type(self.parent))
         while parent:
             parent = parent.parent
 
@@ -55,30 +33,32 @@ class Leaf:
         return True if isinstance(item, Node) else False
 
 
-class Node(deque, Leaf):
-    def __init__(self, x=None, data=None):
+class Node(Leaf, deque):
+    def __init__(self, parent, data=None):
+        Leaf.__init__(self, parent, data)
         deque.__init__(self)
-        Leaf.__init__(self, x, data)
 
         if data:
             self.populate(data)
 
     def dump(self, parent=None, indent=3):
-        if not parent:
-            parent = self
-
         def walk(_parent, level=0):
             for _node in _parent:
-                pad = '' if not level else ' ' * indent * level
-                print(pad, _node.name, _node.parent.name)
+                pad = '' if not level else ' ' * (indent * level)
+                if _node.parent:
+                    print(pad, _node.name, _node.parent.name)
                 if _parent.is_node(_node):
                     walk(_node, level+1)
 
+        if not parent:
+            parent = self
+        print('-----------------------------------------------------')
         walk(parent)
+        print('-----------------------------------------------------')
 
     def append(self, data):
+        data.tree
         super(Node, self).append(data)
-        # print(id(self.tree), type(self.tree), self[len(self)-1].name)
 
     def insert(self, idx, data):
         if idx == END:
@@ -110,8 +90,13 @@ class Node(deque, Leaf):
 
     def populate(self, config):
         for cfg in config:
-            item = Leaf(self, cfg) if 'children' not in cfg else Node(self, cfg.pop('children', ()))
+            if 'children' not in cfg:
+                item = Leaf(self, cfg)
+            else:
+                item = Node(self, cfg.pop('children', ()))
+
             item.name = cfg['name']
+            item.parent = self
             self.append(item)
 
     def get_by_name(self, name):
@@ -162,7 +147,7 @@ def main():
     )
 
     t = Tree(cfg)
-    # t.dump()
+    t.dump()
 
     # print(t[0][1][0].parent.name, len(t))
 
