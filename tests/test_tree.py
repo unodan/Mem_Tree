@@ -108,8 +108,15 @@ class TestTree(unittest.TestCase):
         )
         _list = json.dumps(cfg, sort_keys=True)
         _dump = json.dumps(t.to_list(), sort_keys=True)
-        # Asert, result == source.
+        # Asert, source and target are equal.
         self.assertEqual(_list, _dump)
+
+        node = t.get_by_name('Node 1')
+        _list = json.dumps(node.to_list(), sort_keys=True)
+        _dump = json.dumps(cfg[0]['children'], sort_keys=True)
+        self.assertEqual(_list, _dump)
+
+        print(node)
 
     def test_populate(self):
         # Action, assign source and target.
@@ -141,11 +148,16 @@ class TestTree(unittest.TestCase):
                 'name': 'Leaf 2',
             },
         )
-        _list = json.dumps(cfg, sort_keys=True)
         # Asert, item is in list.
+        _list = json.dumps(cfg, sort_keys=True)
         t.clear()
+        # Asert, tree is empty.
+        self.assertEqual(t, Tree())
+
+        # Action, populate tree with config.
         t.populate(cfg)
         _dump = json.dumps(t.to_list(), sort_keys=True)
+
         # Asert, result == source.
         self.assertEqual(_list, _dump)
         t.dump()
