@@ -27,18 +27,22 @@ def dump(data, indent=None):
     print('-------------------------------------------------------------------------------------------------------')
 
 
-class ItemBase:
-    def __init__(self):
+class Leaf:
+    def __init__(self, parent, data):
         super().__init__()
         self.name = None
-        self.parent = None
+        self.parent = parent
 
     @property
     def tree(self):
-        item = self
-        while item.parent:
-            item = item.parent
-        return item
+        parent = self.parent
+
+        while parent:
+            parent = parent.parent
+
+        if not parent:
+            parent = self
+        return parent
 
     def delete(self, item=None):
         node = item if item else self
@@ -51,50 +55,37 @@ class ItemBase:
         return True if isinstance(item, Node) else False
 
 
-class Leaf(ItemBase):
-    def __init__(self, data):
-        super().__init__()
-        if 'name' in data:
-            self.name = data['name']
-
-    def __len__(self):
-        return len(self.name)
-
-
-class Node(ItemBase, deque):
-    def __init__(self, data=None):
+class Node(deque, Leaf):
+    def __init__(self, x=None, data=None):
         deque.__init__(self)
-        ItemBase.__init__(self)
+        Leaf.__init__(self, x, data)
 
         if data:
             self.populate(data)
 
-    def dump(self, parent=None, file=None, indent=3):
+    def dump(self, parent=None, indent=3):
         if not parent:
             parent = self
 
         def walk(_parent, level=0):
             for _node in _parent:
                 pad = '' if not level else ' ' * indent * level
-                print(pad, _node.name)
+                print(pad, _node.name, _node.parent.name)
                 if _parent.is_node(_node):
                     walk(_node, level+1)
 
         walk(parent)
 
     def append(self, data):
-        idx = len(self)
         super(Node, self).append(data)
-        self[idx].parent = self
+        # print(id(self.tree), type(self.tree), self[len(self)-1].name)
 
     def insert(self, idx, data):
         if idx == END:
             idx = len(self)
-        elif idx < START:
-            idx = START
-
+        elif idx < 0:
+            idx = 0
         super(Node, self).insert(idx, data)
-        self[idx].parent = self
 
     def to_list(self, parent=None):
         def get_data(_item, _data):
@@ -119,9 +110,8 @@ class Node(ItemBase, deque):
 
     def populate(self, config):
         for cfg in config:
-            item = Leaf(cfg) if 'children' not in cfg else Node(cfg.pop('children', ()))
+            item = Leaf(self, cfg) if 'children' not in cfg else Node(self, cfg.pop('children', ()))
             item.name = cfg['name']
-            item.parent = self
             self.append(item)
 
     def get_by_name(self, name):
@@ -132,8 +122,14 @@ class Node(ItemBase, deque):
 
 class Tree(Node):
     def __init__(self, data=None):
-        super().__init__(data)
+        super().__init__(None, data)
+        self.size = 0
         self.name = '.'
+
+    def next_id(self):
+        idx = self.size
+        self.size += 1
+        return idx
 
 
 def main():
@@ -166,7 +162,9 @@ def main():
     )
 
     t = Tree(cfg)
-    t.dump()
+    # t.dump()
+
+    # print(t[0][1][0].parent.name, len(t))
 
 
 if __name__ == '__main__':

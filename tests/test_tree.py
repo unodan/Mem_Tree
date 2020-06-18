@@ -41,7 +41,7 @@ class TestTree(unittest.TestCase):
     def test_append(self):
         # Action, append leaf in the root of tree.
         t = self.t
-        leaf = Leaf({'name': 'test leaf'})
+        leaf = Leaf(t, {'name': 'test leaf'})
         t.append(leaf)
         # Asert, leaf == last item
         self.assertEqual(leaf, t[-1])
@@ -55,19 +55,18 @@ class TestTree(unittest.TestCase):
     def test_insert(self):
         # Action, insert leaf in the root of tree.
         t = self.t
-        leaf = Leaf({'name': 'test leaf'})
+        leaf = Leaf(t, {'name': 'test leaf'})
         t.insert(START, leaf)
         t.insert(2, leaf)
         t.insert(END, leaf)
         # Asert, leaf == item at insert index
         self.assertEqual(leaf, t[START])
         self.assertEqual(leaf, t[2])
-        self.assertEqual(leaf, t[END])
+        self.assertEqual(leaf.name, t[END].name)
 
         # Action, insert leaf in the the root of subtree
-        leaf = Leaf({'name': 'test leaf'})
+        leaf = Leaf(t, {'name': 'test leaf'})
         subtree = t.get_by_name('Node 1').get_by_name('Node 1-1')
-        subtree.append(leaf)
         subtree.insert(START, leaf)
         subtree.insert(2, leaf)
         subtree.insert(END, leaf)
@@ -115,8 +114,6 @@ class TestTree(unittest.TestCase):
         _list = json.dumps(node.to_list(), sort_keys=True)
         _dump = json.dumps(cfg[0]['children'], sort_keys=True)
         self.assertEqual(_list, _dump)
-
-        print(node)
 
     def test_populate(self):
         # Action, assign source and target.
