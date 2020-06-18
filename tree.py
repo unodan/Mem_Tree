@@ -6,21 +6,20 @@ START = 0
 
 
 class Leaf:
-    def __init__(self, parent, data):
+    def __init__(self, data):
         super().__init__()
         self.id = None
         self.parent = None
 
         self.name = data['name'] if isinstance(data, dict) else data[0]['name']
 
-    def tree(self, parent=None):
-        parent = self if not parent else parent
-
+    @property
+    def tree(self):
+        parent = self
         while parent:
+            if not parent.parent:
+                break
             parent = parent.parent
-
-        if not parent:
-            parent = self
         return parent
 
     def delete(self, item=None):
@@ -35,8 +34,8 @@ class Leaf:
 
 
 class Node(Leaf, deque):
-    def __init__(self, parent, data=None):
-        Leaf.__init__(self, parent, data)
+    def __init__(self, data=None):
+        Leaf.__init__(self, data)
         deque.__init__(self)
 
         if data:
@@ -54,14 +53,16 @@ class Node(Leaf, deque):
         if not parent:
             parent = self
         print('-----------------------------------------------------')
-        print('ID : Items')
+        print('ID : Name')
         print('-----------------------------------------------------')
         walk(parent)
         print('-----------------------------------------------------')
 
     def append(self, data):
-        # self.tree(data)
         super(Node, self).append(data)
+        item = self[len(self)-1]
+        item.id = self.tree.next_id()
+        item.parent = self
 
     def insert(self, idx, data):
         if idx == END:
@@ -69,6 +70,9 @@ class Node(Leaf, deque):
         elif idx < 0:
             idx = 0
         super(Node, self).insert(idx, data)
+        item = self[idx]
+        item.id = self.tree.next_id()
+        item.parent = self
 
     def to_list(self, parent=None):
         def get_data(_item, _data):
@@ -93,10 +97,35 @@ class Node(Leaf, deque):
 
     def populate(self, data):
         for cfg in data:
-            item = Leaf(self, cfg) if 'children' not in cfg else Node(self, cfg.pop('children', ()))
+            item = Leaf(cfg) if 'children' not in cfg else Node(cfg.pop('children', ()))
             item.parent = self
             item.name = cfg['name']
-            self.append(item)
+            super(Node, self).append(item)
+
+    def get(self, query):
+        if isinstance(query, int):
+            return self.get_by_id(query)
+        elif isinstance(query, str):
+            return self.get_by_name(query)
+
+    def get_by_id(self, _id):
+        def walk(_item):
+            if _item.id == _id:
+                return _item
+
+            if not _item.is_node():
+                return
+
+            for child in _item:
+                if child.is_node():
+                    _result = walk(child)
+                    if _result:
+                        return _result
+
+        for item in self:
+            result = walk(item)
+            if result:
+                return result
 
     def get_by_name(self, name):
         for c in self:
@@ -106,7 +135,7 @@ class Node(Leaf, deque):
 
 class Tree(Node):
     def __init__(self, data=None):
-        super().__init__(None, data)
+        super().__init__(data)
         self.size = 0
         self.name = '.'
         self.reindex()
