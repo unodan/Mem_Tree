@@ -1,72 +1,80 @@
-from collections import deque
+from collections import deque, OrderedDict
 
 END = -1
+START = 0
 
 
-class Leaf:
+def dump(data, indent=None):
+    indent = indent if indent else '.'
+
+    print('-------------------------------------------------------------------------------------------------------')
+    if data:
+        def walk(_data, count):
+            count += 1
+            for key, value in _data.items():
+                if isinstance(value, dict):
+                    print(indent * count, key)
+                    walk(value, count)
+                else:
+                    if isinstance(value, str):
+                        value = f'"{value}"'
+                    print(indent * count, key, f'value={value}')
+
+        walk(data, 0)
+    else:
+        print(' (No Data)')
+
+    print('-------------------------------------------------------------------------------------------------------')
+
+
+class ItemBase:
+    def __init__(self):
+        super().__init__()
+        self.name = None
+        self.parent = None
+
+    @property
+    def tree(self):
+        item = self
+        while item.parent:
+            item = item.parent
+        return item
+
+    def delete(self, item=None):
+        node = item if item else self
+        idx = node.parent.index(node)
+        del node.parent[idx]
+
+    def is_node(self, item=None):
+        if not item:
+            item = self
+        return True if isinstance(item, Node) else False
+
+
+class Leaf(ItemBase):
     def __init__(self, data):
         super().__init__()
-        self.parent = None
         if 'name' in data:
             self.name = data['name']
 
     def __len__(self):
         return len(self.name)
 
-    def __str__(self):
-        return self.name
 
-
-class Node(deque):
+class Node(ItemBase, deque):
     def __init__(self, data=None):
-        super().__init__()
-        self.name = None
-        self.parent = None
+        deque.__init__(self)
+        ItemBase.__init__(self)
 
         if data:
             self.populate(data)
 
-    def __repr__(self):
-        return self.name
-
-    @staticmethod
-    def is_node(item):
-        return True if isinstance(item, Node) else False
-
-    def prev(self, item=None):
-        if self.parent:
-            parent = self.parent
-        else:
-            parent = self
-
-        items = list(parent)
-        idx = 0 if not item else items.index(item)-1
-
-        if not idx and self.parent:
-            idx = items.index(self)-1
-            if idx >= 0:
-                return items[idx]
-
-        if 0 <= idx < len(self) and item:
-            return items[idx]
-
-    def next(self, item=None):
-        if self.parent:
-            parent = self.parent
-        else:
-            parent = self
-
-        items = list(parent)
-        idx = 0 if not item else items.index(item)+1
-        if idx < len(self):
-            return items[idx]
-
-    def dump(self, parent=None, indent=3):
+    def dump(self, parent=None, file=None, indent=3):
         if not parent:
             parent = self
 
         def walk(_parent, level=0):
-            for _node in _parent.get_children():
+            for _node in _parent:
                 pad = '' if not level else ' ' * indent * level
                 print(pad, _node.name)
                 if _parent.is_node(_node):
@@ -77,38 +85,49 @@ class Node(deque):
     def append(self, data):
         idx = len(self)
         super(Node, self).append(data)
-        list(self)[idx].parent = self
+        self[idx].parent = self
 
     def insert(self, idx, data):
         if idx == END:
             idx = len(self)
-        elif idx < 0:
-            idx = 0
+        elif idx < START:
+            idx = START
 
         super(Node, self).insert(idx, data)
-        list(self)[idx].parent = self
+        self[idx].parent = self
+
+    def to_list(self, parent=None):
+        def get_data(_item, _data):
+            for node in _item:
+                _item_data = {'name': node.name}
+                _data.append(_item_data)
+                if node.is_node():
+                    _item_data['children'] = []
+                    get_data(node, _item_data['children'])
+
+        data = []
+        parent = parent if parent else self
+        for item in parent:
+            if item.is_node():
+                item_data = {'name': item.name, 'children': []}
+                data.append(item_data)
+                get_data(item, item_data['children'])
+            else:
+                item_data = {'name': item.name}
+                data.append(item_data)
+        return data
 
     def populate(self, config):
-        for item in config:
-            if 'children' in item:
-                n = Node(item.pop('children', ()))
-                n.name = item['name']
-                n.parent = self
-                self.append(n)
-            else:
-                leaf = Leaf(item)
-                leaf.parent = self
-                self.append(leaf)
-
-    def get_children(self):
-        return list(self)
+        for cfg in config:
+            item = Leaf(cfg) if 'children' not in cfg else Node(cfg.pop('children', ()))
+            item.name = cfg['name']
+            item.parent = self
+            self.append(item)
 
     def get_by_name(self, name):
         for c in self:
             if c.name == name:
                 return c
-            if self.is_node(c):
-                return c.get_by_name(name)
 
 
 class Tree(Node):
@@ -146,46 +165,7 @@ def main():
         },
     )
 
-    print('-------------------------------')
-    t = Tree()
-    leaf = Leaf({'name': 'My Leaf'})
-    t.insert(0, leaf)
-    print(t.next().parent)
-
-    print('-------------------------------')
     t = Tree(cfg)
-    print(t.parent)
-    print('-------------------------------')
-    t.dump()
-    print('-------------------------------')
-    leaf = Leaf({'name': 'My New Leaf'})
-    print(leaf)
-
-    t.append(leaf)
-    print('parent->', leaf.parent)
-
-    t.insert(END, leaf)
-    print('parent->', leaf.parent)
-
-    print('-------------------------------')
-    print(1, t.prev())
-    print(2, t.next())
-    print(3, t.next(t.next()))
-    print(4, t.next(t.next(t.next())))
-    print(5, t.next(t.next(t.next(t.next()))))
-    print(6, t.prev(t.next(t.next())))
-    print(7, t.prev(t.next(t.next(t.next()))))
-    x = t.get_by_name('Node 1').get_by_name('Node 1-1')
-    print(8, f'{x.name}, {x.prev()}')
-    print(9, f'{x.name}, {x.parent}')
-    x.insert(1, leaf)
-    print('-------------------------------')
-
-    parent = t.get_by_name('Node 1').get_by_name('Node 1-1')
-
-    leaf = Leaf({'name': 'Leaf Insert Test'})
-    parent.insert(END, leaf)
-
     t.dump()
 
 
