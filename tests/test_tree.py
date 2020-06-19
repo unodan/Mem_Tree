@@ -24,31 +24,30 @@ class TestTree(unittest.TestCase):
         self.assertEqual('Node 1-1', target.name)
 
         # Asert, target id = get item id.
-        self.assertEqual(target, t.get(3))
+        self.assertEqual(target, t.query(3))
         # Asert, target name = get item name.
-        self.assertEqual(target, t.get('Node 1-1'))
+        self.assertEqual(target, t.query('Node 1-1'))
 
         target = t[0][1][1]  # name = Leaf 1-2, id = 5
         # Asert, make sure we have the correct target
         self.assertEqual(5, target.id)
         self.assertEqual('Leaf 1-2', target.name)
-
         # Asert, target id = get item id.
-        self.assertEqual(target, t.get(5))
+        self.assertEqual(target, t.query(5))
         # Asert, target name = get item name.
-        self.assertEqual(target, t.get('Leaf 1-2'))
+        self.assertEqual(target, t.query('Leaf 1-2'))
 
     def test_append(self):
         # Action, append leaf in the root of tree.
         t = self.t
 
-        leaf = Leaf({'name': 'test leaf'})
+        leaf = Leaf({'name': 'test leaf', 'columns': []})
         t.append(leaf)
         # Asert, leaf == last item
         self.assertEqual(leaf, t[-1])
 
         # Action, append leaf in the root of subtree
-        subtree = t.get_by_name('Node 1').get_by_name('Node 1-1')
+        subtree = t.query_by_name('Node 1').query_by_name('Node 1-1')
         subtree.append(leaf)
         # Asert, leaf == last item
         self.assertEqual(leaf, subtree[-1])
@@ -56,7 +55,7 @@ class TestTree(unittest.TestCase):
     def test_insert(self):
         # Action, insert leaf in the root of tree.
         t = self.t
-        leaf = Leaf({'name': 'test leaf'})
+        leaf = Leaf({'name': 'test leaf', 'columns': []})
         t.insert(START, leaf)
         t.insert(2, leaf)
         t.insert(END, leaf)
@@ -66,8 +65,8 @@ class TestTree(unittest.TestCase):
         self.assertEqual(leaf.name, t[END].name)
 
         # Action, insert leaf in the the root of subtree
-        leaf = Leaf({'name': 'test leaf'})
-        subtree = t.get_by_name('Node 1').get_by_name('Node 1-1')
+        leaf = Leaf({'name': 'test leaf', 'columns': []})
+        subtree = t.query_by_name('Node 1').query_by_name('Node 1-1')
         subtree.insert(START, leaf)
         subtree.insert(2, leaf)
         subtree.insert(END, leaf)
@@ -75,6 +74,25 @@ class TestTree(unittest.TestCase):
         self.assertEqual(leaf, subtree[START])
         self.assertEqual(leaf, subtree[2])
         self.assertEqual(leaf, subtree[END])
+
+    def test_get_cell(self):
+        self.test_set_cell()
+
+    def test_set_cell(self):
+        # Action, insert leaf in the root of tree.
+        t = self.t
+        leaf = Leaf({'name': 'xxx', 'columns': ['one', 'two', 'three']})
+        t.append(leaf)
+        # Asert, leaf was appended.
+        self.assertEqual(leaf, t.query('xxx'))
+        # Action, get column value.
+        value = t.get_cell('xxx', 2)
+        # Asert, column value == 'two'
+        self.assertEqual('two', t.get_cell('xxx', 2))
+        # Action, set column value.
+        t.set_cell('xxx', 2, value.upper())
+        # Asert, column value == 'TWO' (upper case)
+        self.assertEqual('TWO', t.get_cell('xxx', 2))
 
     def test_to_list(self):
         # Action, assign source and target data, complete tree.
@@ -85,7 +103,7 @@ class TestTree(unittest.TestCase):
         # Asert, source and target are equal.
         self.assertEqual(_list, _dump)
         # Action, assign source and target data, complete node.
-        node = t.get_by_name('Node 1')
+        node = t.query_by_name('Node 1')
         _list = json.dumps(node.to_list(), sort_keys=True)
         _dump = json.dumps(cfg[0]['children'], sort_keys=True)
         # Asert, source and target are equal.
@@ -109,7 +127,7 @@ class TestTree(unittest.TestCase):
         # Action, assign source and target.
         t = self.t
         target = t[1]
-        item = t.get_by_name(target.name)
+        item = t.query_by_name(target.name)
         # Asert, item is in list.
         self.assertEqual(target, item)
 
