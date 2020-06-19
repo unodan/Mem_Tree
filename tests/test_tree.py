@@ -1,6 +1,6 @@
 import unittest
 import json
-from tree import Tree, Leaf, END, START
+from tree import Tree, Leaf, const
 from config import data
 
 from copy import deepcopy
@@ -28,6 +28,7 @@ class TestTree(unittest.TestCase):
         # Asert, target name = get item name.
         self.assertEqual(target, t.query('Node 1-1'))
 
+        # Action, set a target.
         target = t[0][1][1]  # name = Leaf 1-2, id = 5
         # Asert, make sure we have the correct target
         self.assertEqual(5, target.id)
@@ -36,6 +37,19 @@ class TestTree(unittest.TestCase):
         self.assertEqual(target, t.query(5))
         # Asert, target name = get item name.
         self.assertEqual(target, t.query('Leaf 1-2'))
+
+    def test_query(self):
+        # Action, set a target.
+        t = self.t
+        target = t[1]  # name = Leaf 1, id = 1
+        # Asert, make sure we have the correct target
+        self.assertEqual('Leaf 1', target.name)
+        # Action, do query.
+        leaf = t.query('Leaf 1')
+        # Asert, tests if the target id matches query result id.
+        self.assertEqual(leaf.id, target.id)
+        # Asert, tests if the target name matches query result id.
+        self.assertEqual('Leaf 1', leaf.name)
 
     def test_append(self):
         # Action, append leaf in the root of tree.
@@ -56,24 +70,24 @@ class TestTree(unittest.TestCase):
         # Action, insert leaf in the root of tree.
         t = self.t
         leaf = Leaf({'name': 'test leaf', 'columns': []})
-        t.insert(START, leaf)
+        t.insert(int(const.START), leaf)
         t.insert(2, leaf)
-        t.insert(END, leaf)
+        t.insert(int(const.END), leaf)
         # Asert, leaf == item at insert index
-        self.assertEqual(leaf, t[START])
+        self.assertEqual(leaf, t[int(const.START)])
         self.assertEqual(leaf, t[2])
-        self.assertEqual(leaf.name, t[END].name)
+        self.assertEqual(leaf.name, t[int(const.END)].name)
 
         # Action, insert leaf in the the root of subtree
         leaf = Leaf({'name': 'test leaf', 'columns': []})
         subtree = t.query_by_name('Node 1').query_by_name('Node 1-1')
-        subtree.insert(START, leaf)
+        subtree.insert(int(const.START), leaf)
         subtree.insert(2, leaf)
-        subtree.insert(END, leaf)
+        subtree.insert(int(const.END), leaf)
         # Asert, leaf == item at insert index
-        self.assertEqual(leaf, subtree[START])
+        self.assertEqual(leaf, subtree[int(const.START)])
         self.assertEqual(leaf, subtree[2])
-        self.assertEqual(leaf, subtree[END])
+        self.assertEqual(leaf, subtree[int(const.END)])
 
     def test_get_cell(self):
         self.test_set_cell()
@@ -130,7 +144,3 @@ class TestTree(unittest.TestCase):
         item = t.query_by_name(target.name)
         # Asert, item is in list.
         self.assertEqual(target, item)
-
-
-
-

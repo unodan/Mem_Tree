@@ -1,8 +1,8 @@
+from enum import IntEnum
 from collections import deque
 import config
 
-END = -1
-START = 0
+const = IntEnum('Constants', 'START END', start=-1)
 
 
 class Leaf:
@@ -72,7 +72,7 @@ class Node(Leaf, deque):
         return item
 
     def insert(self, idx, data):
-        if idx == END:
+        if idx == int(const.END):
             idx = len(self)
         elif idx < 0:
             idx = 0
@@ -130,7 +130,6 @@ class Node(Leaf, deque):
         def walk(_item):
             if _item.id == _id:
                 return _item
-
             if not _item.is_node():
                 return
 
@@ -151,7 +150,6 @@ class Node(Leaf, deque):
         def walk(_item):
             if _item.name == name:
                 return _item
-
             if not _item.is_node():
                 return
 
@@ -197,8 +195,9 @@ def main():
     # Example usage, read the test_tree.py for more examples.
     leaf = Leaf({'name': 'xxx', 'columns': ['one', 'two', 'three']})
     t.append(leaf)
+
     t.set_cell('xxx', 3, 3)  # Changed word "three" to the number 3.
-    t.set_cell(8, 0, 'YYY')  # Changed the name from "xxx" to YYY.
+    t.set_cell(leaf.id, 0, 'YYY')  # Changed the name from "xxx" to YYY.
 
     t.show()
 
