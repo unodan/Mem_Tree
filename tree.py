@@ -105,6 +105,7 @@ class Node(Base, deque):
         walk(parent if parent else self)
 
     def query(self, query):
+
         if isinstance(query, int):
             return self.query_by_id(query)
         elif isinstance(query, str):
@@ -179,8 +180,8 @@ class Node(Base, deque):
                     return child
                 elif child.is_node():
                     _result = walk(child)
-                    if _result and _result.id == _id:
-                        return child
+                    if _result is not None and _result.id == _id:
+                        return _result
 
         for item in self:
             if item.id == _id:
@@ -202,7 +203,7 @@ class Node(Base, deque):
                     return child
                 elif child.is_node():
                     _result = walk(child)
-                    if _result and _result.name == name:
+                    if _result is not None and _result.name == name:
                         return _result
 
         for item in self:

@@ -1,6 +1,6 @@
 import unittest
 import json
-from tree import Tree, Leaf, const
+from tree import Tree, Leaf, Node
 from config import data
 
 from copy import deepcopy
@@ -20,9 +20,9 @@ class TestTree(unittest.TestCase):
         t = self.t
 
         # Asert, that get() gets the correct column value.
-        self.assertEqual('Node 1a', t[0].get(0))
+        self.assertEqual('Node One', t[0].get(0))
         self.assertEqual('Node', t[0].get(1))
-        self.assertEqual('Sub node a1, Leaf 1', t[0][3][0].get(0))
+        self.assertEqual('Leaf Three', t[0][3][0].get(0))
         self.assertEqual('Leaf', t[0][3][0].get(1))
 
     def test_set(self):
@@ -30,7 +30,7 @@ class TestTree(unittest.TestCase):
         t = self.t
 
         # Asert, make sure we have the correct target.
-        self.assertEqual('Node 1a', t[0].get(0))
+        self.assertEqual('Node One', t[0].get(0))
 
         # Action, set a new values for columns.
         t[0].set(0, 'New Name')
@@ -53,9 +53,9 @@ class TestTree(unittest.TestCase):
         t = self.t
 
         # Asert, make sure we get the correct target from the query.
-        self.assertEqual('Node 1a-1', t.query('Node 1a-1').name)  # Query by name.
-        _id = t.query('Node 1a-1').id
-        self.assertEqual('Node 1a-1', t.query(_id).name)  # Query by id.
+        self.assertEqual('Node One', t.query('Node One').name)  # Query by name.
+        _id = t.query('Leaf Three').id
+        self.assertEqual('Leaf Three', t.query(_id).name)  # Query by id.
 
     def test_append(self):
         # Action, get tree.
@@ -69,7 +69,7 @@ class TestTree(unittest.TestCase):
         self.assertEqual(leaf, t[-1])
 
         # Action, append leaf in the root of a subtree.
-        subtree = t.query_by_name('Sub Node 1a')
+        subtree = t.query_by_name('Node Four')
         subtree.append(leaf)
 
         # Asert, leaf == last item, in the root of the subtree.
@@ -101,7 +101,7 @@ class TestTree(unittest.TestCase):
         leaf3 = Leaf({'name': 'test leaf3'})
 
         # Action, get node.
-        subtree = t.query_by_name('Sub Node 1a')
+        subtree = t.query_by_name('Node Three')
 
         # Action, insert leafs.
         subtree.insert(0, leaf1)
@@ -109,20 +109,18 @@ class TestTree(unittest.TestCase):
         subtree.insert(len(subtree), leaf3)
 
         # Asert, leaf == item inserted at index.
-        self.assertEqual(subtree, t.query_by_name('Sub Node 1a'))
+        self.assertEqual(subtree, t.query_by_name('Node Three'))
         self.assertEqual(leaf1, subtree[0])
         self.assertEqual(leaf2, subtree[2])
         self.assertEqual(leaf3, subtree[len(subtree)-1])
-
-        t.show()
 
     def test_get_cell(self):
         # Action, get tree.
         t = self.t
 
         # Asert, column value == expected value.
-        self.assertEqual('Node', t.get_cell(2, 1))
-        self.assertEqual('0 items', t.get_cell('Node 1a-1', 2))
+        self.assertEqual('Node', t.get_cell(7, 1))
+        self.assertEqual('0 items', t.get_cell('Node Three', 2))
 
     def test_set_cell(self):
         # Action, get tree.
@@ -157,9 +155,9 @@ class TestTree(unittest.TestCase):
         self.assertEqual(_list, _dump)
 
         # Action, assign source and target data, complete node.
-        node = t.query_by_name('Node 1a')
+        node = t.query_by_name('Node Three')
         _list = json.dumps(node.to_list(), sort_keys=True)
-        _dump = json.dumps(cfg[0]['children'], sort_keys=True)
+        _dump = json.dumps(cfg[0]['children'][3]['children'], sort_keys=True)
 
         # Asert, source and target are equal.
         self.assertEqual(_list, _dump)
