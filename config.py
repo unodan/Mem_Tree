@@ -1,34 +1,23 @@
-data = (
-    {
-        'name': 'Node 1',
-        'columns': [],
-        'children': (
-            {
-                'name': 'Leaf n1',
-                'columns': [],
-            },
-            {
-                'name': 'Node 1-1',
-                'columns': [],
-                'children': (
-                    {
-                        'name': 'Leaf 1-1',
-                        'columns': [],
-                    },
-                    {
-                        'name': 'Leaf 1-2',
-                        'columns': [],
-                    },
-                )
-            },
-        )
-    },
-    {
-        'name': 'Leaf 1',
-        'columns': [],
-    },
-    {
-        'name': 'Leaf 2',
-        'columns': [],
-    },
-)
+data = [{
+    'name': 'Node 1a',
+    'children': [
+        {
+            'name': 'Leaf 1a',
+        },
+        {
+            'name': 'Node 1a-1',
+            'children': [],
+        },
+        {
+            'name': 'Leaf 2a',
+        },
+        {
+            'name': 'Sub Node 1a',
+            'children': [
+                {
+                    'name': 'Sub node a1, Leaf 1',
+                },
+            ]
+        },
+    ],
+}]

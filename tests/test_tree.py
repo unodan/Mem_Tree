@@ -16,131 +16,157 @@ class TestTree(unittest.TestCase):
         """Tear down test fixtures, if any."""
 
     def test_get(self):
-        # Action, set a target.
+        # Action, get tree
         t = self.t
-        target = t[0][1]  # name = Node 1-1, id = 3
-        # Asert, make sure we have the correct target
-        self.assertEqual(3, target.id)
-        self.assertEqual('Node 1-1', target.name)
 
-        # Asert, target id = get item id.
-        self.assertEqual(target, t.query(3))
-        # Asert, target name = get item name.
-        self.assertEqual(target, t.query('Node 1-1'))
+        # Asert, that get() gets the correct column value.
+        self.assertEqual('Node 1a', t[0].get(0))
+        self.assertEqual('Node', t[0].get(1))
+        self.assertEqual('Sub node a1, Leaf 1', t[0][3][0].get(0))
+        self.assertEqual('Leaf', t[0][3][0].get(1))
 
-        # Action, set a target.
-        target = t[0][1][1]  # name = Leaf 1-2, id = 5
-        # Asert, make sure we have the correct target
-        self.assertEqual(5, target.id)
-        self.assertEqual('Leaf 1-2', target.name)
-        # Asert, target id = get item id.
-        self.assertEqual(target, t.query(5))
-        # Asert, target name = get item name.
-        self.assertEqual(target, t.query('Leaf 1-2'))
+    def test_set(self):
+        # Action, get tree
+        t = self.t
+
+        # Asert, make sure we have the correct target.
+        self.assertEqual('Node 1a', t[0].get(0))
+
+        # Action, set a new values for columns.
+        t[0].set(0, 'New Name')
+        t[0].set(1, '99 items')
+
+        # Asert, make sure we get the correct column values.
+        self.assertEqual('New Name', t[0].get(0))
+        self.assertEqual('99 items', t[0].get(1))
+
+        # Action, set a new values for columns.
+        t[0][3][0].set(0, 'Some Name')
+        t[0][3][0].set(1, '101 items')
+
+        # Asert, make sure we get the correct column values.
+        self.assertEqual('Some Name', t[0][3][0].get(0))
+        self.assertEqual('101 items', t[0][3][0].get(1))
 
     def test_query(self):
-        # Action, set a target.
+        # Action, get tree.
         t = self.t
-        target = t[1]  # name = Leaf 1, id = 1
-        # Asert, make sure we have the correct target
-        self.assertEqual('Leaf 1', target.name)
-        # Action, do query.
-        leaf = t.query('Leaf 1')
-        # Asert, tests if the target id matches query result id.
-        self.assertEqual(leaf.id, target.id)
-        # Asert, tests if the target name matches query result id.
-        self.assertEqual('Leaf 1', leaf.name)
+
+        # Asert, make sure we get the correct target from the query.
+        self.assertEqual('Node 1a-1', t.query('Node 1a-1').name)  # Query by name.
+        _id = t.query('Node 1a-1').id
+        self.assertEqual('Node 1a-1', t.query(_id).name)  # Query by id.
 
     def test_append(self):
-        # Action, append leaf in the root of tree.
+        # Action, get tree.
         t = self.t
 
-        leaf = Leaf({'name': 'test leaf', 'columns': []})
+        # Action, append leaf in the root of tree.
+        leaf = Leaf({'name': 'test leaf'})
         t.append(leaf)
-        # Asert, leaf == last item
+
+        # Asert, leaf == last item, in the root of the tree.
         self.assertEqual(leaf, t[-1])
 
-        # Action, append leaf in the root of subtree
-        subtree = t.query_by_name('Node 1').query_by_name('Node 1-1')
+        # Action, append leaf in the root of a subtree.
+        subtree = t.query_by_name('Sub Node 1a')
         subtree.append(leaf)
-        # Asert, leaf == last item
+
+        # Asert, leaf == last item, in the root of the subtree.
         self.assertEqual(leaf, subtree[-1])
 
     def test_insert(self):
-        # Action, insert leaf in the root of tree.
+        # Action, get tree.
         t = self.t
-        leaf = Leaf({'name': 'test leaf', 'columns': []})
-        t.insert(int(const.START), leaf)
+
+        # Action, insert leaf in the root of tree.
+        leaf = Leaf({'name': 'test leaf'})
+        t.insert(0, leaf)
         t.insert(2, leaf)
-        t.insert(int(const.END), leaf)
-        # Asert, leaf == item at insert index
-        self.assertEqual(leaf, t[int(const.START)])
+        t.insert(len(t), leaf)
+
+        # Asert, leaf == item inserted at index.
+        self.assertEqual(leaf, t[0])
         self.assertEqual(leaf, t[2])
-        self.assertEqual(leaf.name, t[int(const.END)].name)
+        self.assertEqual(leaf, t[len(t)-1])
 
         # Action, insert leaf in the the root of subtree
-        leaf = Leaf({'name': 'test leaf', 'columns': []})
-        subtree = t.query_by_name('Node 1').query_by_name('Node 1-1')
-        subtree.insert(int(const.START), leaf)
+        subtree = t.query_by_name('Sub Node 1a')
+        subtree.insert(0, leaf)
         subtree.insert(2, leaf)
-        subtree.insert(int(const.END), leaf)
-        # Asert, leaf == item at insert index
-        self.assertEqual(leaf, subtree[int(const.START)])
+        subtree.insert(len(t), leaf)
+
+        # Asert, leaf == item inserted at index.
+        self.assertEqual(leaf, subtree[0])
         self.assertEqual(leaf, subtree[2])
-        self.assertEqual(leaf, subtree[int(const.END)])
+        self.assertEqual(leaf, subtree[len(t)-1])
 
     def test_get_cell(self):
-        self.test_set_cell()
+        # Action, get tree.
+        t = self.t
+
+        # Asert, column value == expected value.
+        self.assertEqual('Node', t.get_cell(2, 1))
+        self.assertEqual('0 items', t.get_cell('Node 1a-1', 2))
 
     def test_set_cell(self):
-        # Action, insert leaf in the root of tree.
+        # Action, get tree.
         t = self.t
-        leaf = Leaf({'name': 'xxx', 'columns': ['one', 'two', 'three']})
+
+        # Action, insert leaf in the root of tree.
+        leaf = Leaf({'name': 'test leaf', 'columns': ['test1', 'test2', 'test3']})
         t.append(leaf)
+
         # Asert, leaf was appended.
-        self.assertEqual(leaf, t.query('xxx'))
-        # Action, get column value.
-        value = t.get_cell('xxx', 2)
-        # Asert, column value == 'two'
-        self.assertEqual('two', t.get_cell('xxx', 2))
+        self.assertEqual(leaf.name, t.query('test leaf').name)
+
+        # Asert, column value == 'test1'
+        self.assertEqual('test1', t.get_cell(7, 1))
+        self.assertEqual('test1', t.get_cell('test leaf', 1))
+
         # Action, set column value.
-        t.set_cell('xxx', 2, value.upper())
+        t.set_cell('test leaf', 2, 'TEST2')
         # Asert, column value == 'TWO' (upper case)
-        self.assertEqual('TWO', t.get_cell('xxx', 2))
+        self.assertEqual('TEST2', t.get_cell('test leaf', 2))
 
     def test_to_list(self):
-        # Action, assign source and target data, complete tree.
+        # Action, get tree.
         t = self.t
+
+        # Action, assign source and target data, complete tree.
         cfg = deepcopy(data)
         _list = json.dumps(cfg, sort_keys=True)
         _dump = json.dumps(t.to_list(), sort_keys=True)
+
         # Asert, source and target are equal.
         self.assertEqual(_list, _dump)
+
         # Action, assign source and target data, complete node.
-        node = t.query_by_name('Node 1')
+        node = t.query_by_name('Node 1a')
         _list = json.dumps(node.to_list(), sort_keys=True)
         _dump = json.dumps(cfg[0]['children'], sort_keys=True)
+
         # Asert, source and target are equal.
         self.assertEqual(_list, _dump)
 
-    def test_populate(self):
-        # Action, assign source and target.
+    def test_query_by_id(self):
+        # Action, get tree.
         t = self.t
-        # Action, get copy of tree data then empty the tree.
-        _list = json.dumps(self.cfg, sort_keys=True)
-        t.clear()
-        # Asert, tree is empty.
-        self.assertEqual(len(t), 0)
-        # Action, populate tree with config data.
-        t.populate(self.cfg)
-        _dump = json.dumps(t.to_list(), sort_keys=True)
-        # Asert, tree data == config data.
-        self.assertEqual(_list, _dump)
 
-    def test_get_by_name(self):
-        # Action, assign source and target.
+        # Action, get target id.
+        target = t[0]
+        _id = target.id
+
+        # Asert, ids match from query.
+        self.assertEqual(_id, t.query_by_id(_id).id)
+
+    def test_query_by_name(self):
+        # Action, get tree.
         t = self.t
-        target = t[1]
-        item = t.query_by_name(target.name)
-        # Asert, item is in list.
-        self.assertEqual(target, item)
+
+        # Asert, get target name.
+        target = t[0]
+        name = target.name
+
+        # Asert, names match from query.
+        self.assertEqual(name, t.query_by_name(name).name)
