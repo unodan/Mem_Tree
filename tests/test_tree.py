@@ -77,29 +77,44 @@ class TestTree(unittest.TestCase):
 
     def test_insert(self):
         # Action, get tree.
-        t = self.t
+        t = deepcopy(self.t)
+        t.size = 0
 
-        # Action, insert leaf in the root of tree.
-        leaf = Leaf({'name': 'test leaf'})
-        t.insert(0, leaf)
-        t.insert(2, leaf)
-        t.insert(len(t), leaf)
+        # Action, create leafs.
+        leaf1 = Leaf({'name': 'test leaf1'})
+        leaf2 = Leaf({'name': 'test leaf2'})
+        leaf3 = Leaf({'name': 'test leaf3'})
+
+        # Action, insert leafs.
+        t.insert(0, leaf1)
+        t.insert(2, leaf2)
+        t.insert(len(t), leaf3)
 
         # Asert, leaf == item inserted at index.
-        self.assertEqual(leaf, t[0])
-        self.assertEqual(leaf, t[2])
-        self.assertEqual(leaf, t[len(t)-1])
+        self.assertEqual(leaf1, t[0])
+        self.assertEqual(leaf2, t[2])
+        self.assertEqual(leaf3, t[len(t)-1])
 
-        # Action, insert leaf in the the root of subtree
+        # Action, create leafs.
+        leaf1 = Leaf({'name': 'test leaf1'})
+        leaf2 = Leaf({'name': 'test leaf2'})
+        leaf3 = Leaf({'name': 'test leaf3'})
+
+        # Action, get node.
         subtree = t.query_by_name('Sub Node 1a')
-        subtree.insert(0, leaf)
-        subtree.insert(2, leaf)
-        subtree.insert(len(t), leaf)
+
+        # Action, insert leafs.
+        subtree.insert(0, leaf1)
+        subtree.insert(2, leaf2)
+        subtree.insert(len(subtree), leaf3)
 
         # Asert, leaf == item inserted at index.
-        self.assertEqual(leaf, subtree[0])
-        self.assertEqual(leaf, subtree[2])
-        self.assertEqual(leaf, subtree[len(t)-1])
+        self.assertEqual(subtree, t.query_by_name('Sub Node 1a'))
+        self.assertEqual(leaf1, subtree[0])
+        self.assertEqual(leaf2, subtree[2])
+        self.assertEqual(leaf3, subtree[len(subtree)-1])
+
+        t.show()
 
     def test_get_cell(self):
         # Action, get tree.
@@ -121,7 +136,7 @@ class TestTree(unittest.TestCase):
         self.assertEqual(leaf.name, t.query('test leaf').name)
 
         # Asert, column value == 'test1'
-        self.assertEqual('test1', t.get_cell(7, 1))
+        self.assertEqual('test1', t.get_cell(leaf.id, 1))
         self.assertEqual('test1', t.get_cell('test leaf', 1))
 
         # Action, set column value.

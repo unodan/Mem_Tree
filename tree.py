@@ -1,11 +1,14 @@
 from enum import IntEnum
 from collections import deque
+from config import data as config
 
 const = IntEnum('Constants', 'END START', start=-1)
 
 
 class Base:
     def __init__(self, data=None, **kwargs):
+        self.uri = None
+
         self.id = kwargs.get('id')
         self.name = kwargs.get('name')
         self.parent = kwargs.get('parent')
@@ -36,6 +39,22 @@ class Base:
             self.name = value
         else:
             self.columns[column-1] = value
+
+    def path(self, uri=None):
+        if not uri:
+            parts = [self.name]
+
+            node = self.parent
+            while node and node:
+                parts.append(node.name)
+                node = node.parent
+            return '/'.join(list(reversed(parts)))
+
+        item = None
+        parts = uri.split('/')
+        while parts:
+            item = self.tree.query(parts.pop(0)) if isinstance(self, Tree) else self.query(parts.pop(0))
+        return item
 
     def delete(self, item=None):
         node = item if item else self
@@ -85,14 +104,6 @@ class Node(Base, deque):
         print('-----------------------------------------------------')
         walk(parent if parent else self)
 
-    def path(self, uri):
-        parts = uri.split('/')
-
-        item = None
-        while parts:
-            item = self.query(parts.pop(0))
-        return item
-
     def query(self, query):
         if isinstance(query, int):
             return self.query_by_id(query)
@@ -108,7 +119,7 @@ class Node(Base, deque):
         if idx == int(const.END):
             idx = len(self)
         elif idx < int(const.START):
-            idx = const.START
+            idx = int(const.START)
 
         if isinstance(data, Leaf) or isinstance(data, Node):
             super(Node, self).insert(idx, data)
@@ -337,10 +348,17 @@ def main():
     t.reindex()
     t.show()
 
-    item = t.path('Node 1a/Node 1a-1')
-    print(item.name)
-    item = item.path('Node 1a/Leaf 1a')
-    print(item.name)
+    print('------------------------------------------------------')
+
+    t = Tree(config)
+    t.show()
+
+    item = t.path('Node One/Node Three')
+    print(item.name, item.path())
+    item = item.path('Node One/Node Three/Node Four/Leaf Four')
+    print(item.name, item.path())
+
+    print('------------------------------------------------------')
 
 
 if __name__ == '__main__':

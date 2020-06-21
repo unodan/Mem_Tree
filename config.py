@@ -1,21 +1,29 @@
 data = [{
-    'name': 'Node 1a',
+    'name': 'Node One',
     'children': [
         {
-            'name': 'Leaf 1a',
+            'name': 'Leaf One',
         },
         {
-            'name': 'Node 1a-1',
+            'name': 'Node Two',
             'children': [],
         },
         {
-            'name': 'Leaf 2a',
+            'name': 'Leaf Two',
         },
         {
-            'name': 'Sub Node 1a',
+            'name': 'Node Three',
             'children': [
                 {
-                    'name': 'Sub node a1, Leaf 1',
+                    'name': 'Leaf Three',
+                },
+                {
+                    'name': 'Node Four',
+                    'children': [
+                        {
+                            'name': 'Leaf Four',
+                        },
+                    ]
                 },
             ]
         },
