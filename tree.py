@@ -85,6 +85,14 @@ class Node(Base, deque):
         print('-----------------------------------------------------')
         walk(parent if parent else self)
 
+    def path(self, uri):
+        parts = uri.split('/')
+
+        item = None
+        while parts:
+            item = self.query(parts.pop(0))
+        return item
+
     def query(self, query):
         if isinstance(query, int):
             return self.query_by_id(query)
@@ -328,6 +336,11 @@ def main():
 
     t.reindex()
     t.show()
+
+    item = t.path('Node 1a/Node 1a-1')
+    print(item.name)
+    item = item.path('Node 1a/Leaf 1a')
+    print(item.name)
 
 
 if __name__ == '__main__':
