@@ -1,6 +1,7 @@
 from enum import IntEnum
 from collections import deque
 from config import data as config
+from copy import deepcopy
 
 const = IntEnum('Constants', 'END START', start=-1)
 
@@ -25,6 +26,10 @@ class Base:
         while not isinstance(item, Tree):
             item = item.parent
         return item
+
+    @staticmethod
+    def copy(src, dst):
+        dst.append(deepcopy(src))
 
     def get(self, column):
         if not column:
@@ -365,13 +370,18 @@ def main():
 
     print('------------------------------------------------------')
 
-    item = t.path('Node One/Node Three')
+    item = t.query('Node One/Node Three')
     print(f'ID:{item.id}, Name:{item.name}, Path:{item.path()}')
+
+    t.copy(item, item.query('Node One/Node Two'))
+    t.show()
+
+    print('------------------------------------------------------')
 
     item = item.query('Node Four/Leaf Four')
     print(f'ID:{item.id}, Name:{item.name}, Path:{item.path()}')
 
-    item = item.path('Node Four/Leaf Four')
+    item = item.query('Node Four/Leaf Four')
     print(f'ID:{item.id}, Name:{item.name}, Path:{item.path()}')
 
     print('------------------------------------------------------')

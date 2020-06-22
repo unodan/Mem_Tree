@@ -65,6 +65,24 @@ class TestTree(unittest.TestCase):
         # # Asert, test that both paths are equal.
         self.assertEqual('Node One/Node Three/Node Four/Leaf Four', node.path('Node Four/Leaf Four').path())
 
+    def test_copy(self):
+        # Action, get tree
+        t = self.t
+
+        # Action, get source and destination.
+        src = t.query('Node One/Node Three')
+        dst = src.query('Node One/Node Two')
+
+        # Action, do the copy.
+        t.copy(src, dst)
+
+        # Action. serialize data for comparing.
+        src_data = json.dumps(src.to_list(), sort_keys=True)
+        dst_data = json.dumps(dst.query('Node Three').to_list(), sort_keys=True)
+
+        # Asert, source and destination data are equal.
+        self.assertEqual(src_data, dst_data)
+
     def test_query(self):
         # Action, get tree.
         t = self.t
