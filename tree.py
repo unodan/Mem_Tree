@@ -1,5 +1,6 @@
 from enum import IntEnum
 from collections import deque
+from datetime import datetime
 from config import data as config
 from copy import deepcopy
 
@@ -13,12 +14,12 @@ class Base:
         self.id = kwargs.get('id')
         self.name = kwargs.get('name')
         self.parent = kwargs.get('parent')
-        self.columns = kwargs.get('columns')
+        self.columns = kwargs.get('columns', [])
         if data:
             self.id = data.get('id')
             self.name = data.get('name')
             self.parent = data.get('parent')
-            self.columns = data.get('columns')
+            self.columns = data.get('columns', [])
 
     @property
     def tree(self):
@@ -31,33 +32,50 @@ class Base:
     def copy(src, dst):
         dst.append(deepcopy(src))
 
-    def get(self, column):
-        if not column:
-            return self.name
-        elif len(self.columns) > column >= 1:
-            return self.columns[column-1]
+    def get(self, columns=None):
+        if columns is None:
+            columns = tuple(range(0, len(self.tree.headings)+1))
+        elif not isinstance(columns, tuple):
+            columns = (columns, )
 
-    def set(self, column, value):
-        if column < 0 or column > len(self.columns):
-            return
-        elif not column:
-            self.name = value
-        else:
-            self.columns[column-1] = value
+        data = []
+        for column in columns:
+            if column < 0 or column > len(self.columns):
+                continue
+            elif not column:
+                data.append(self.name)
+            elif 0 < column < len(self.columns)+1:
+                data.append(self.columns[column-1])
+
+        return data[0] if len(data) == 1 else tuple(data) if data else None
+
+    def set(self, columns, values):
+        if not isinstance(columns, tuple):
+            columns = (columns, )
+        if not isinstance(values, tuple):
+            values = (values, )
+
+        for column, value in dict(zip(columns, values)).items():
+            if column < 0 or column > len(self.columns):
+                continue
+            elif not column:
+                self.name = value
+            else:
+                self.columns[column-1] = value
 
     def path(self, uri=None):
-        if uri and uri.startswith('./'):
-            uri = uri.lstrip('./')
+        if uri and uri.startswith('.'):
+            uri = uri.lstrip('.')
 
         if not uri:
-            parts = [self.name]
+            parts = [self.name] if not isinstance(self.parent, Tree) else ['']
 
             node = self.parent
             while node and node:
                 parts.append(node.name)
                 node = node.parent
 
-            return '/'.join(list(reversed(parts))).lstrip('./')
+            return '/'.join(list(reversed(parts))).lstrip('.')
 
         item = None
         parts = uri.split('/')
@@ -96,6 +114,7 @@ class Base:
 class Leaf(Base):
     def __init__(self, data=None,  **kwargs):
         super().__init__(data, **kwargs)
+        self.type = 'Leaf'
 
     def __len__(self):
         return None
@@ -105,10 +124,7 @@ class Node(Base, deque):
     def __init__(self, data=None, **kwargs):
         Base.__init__(self, data, **kwargs)
         deque.__init__(self)
-
-        if data and 'children' not in data and not isinstance(self, Tree):
-            data['children'] = []
-            return
+        self.type = 'Node'
 
     @property
     def children(self):
@@ -121,29 +137,48 @@ class Node(Base, deque):
 
             for idx, _node in enumerate(_parent):
                 pad = '' if not level else ' ' * (indent * level)
-                print(f' {str(_node.id).zfill(index_pad)}:{pad} {_node.name}, {_node.columns}')
+                columns = '' if not _node.columns else f', {str(_node.columns)}'
+                print(f' {str(_node.id).zfill(index_pad)}:{pad} {_node.name}{columns}')
                 if _parent.is_node(_node):
                     walk(_node, level+1)
 
+        header_postfix = f', Columns: {str(self.tree.headings)}' if self.tree.headings else ''
         print('-----------------------------------------------------')
-        print(f'   ID: Name, Columns: {str(self.tree.headings)}')
+        print(f'   ID: Name{header_postfix}')
         print('-----------------------------------------------------')
         walk(parent if parent else self)
 
-    def append(self, item):
+    def append(self, item) -> str:
+        new_item = None
         if isinstance(item, Leaf) or isinstance(item, Node):
             super(Node, self).append(item)
-            item.id = self.tree.next_id()
+            new_item = self[len(self)-1]
+            if new_item.parent is None:
+                new_item.parent = self
 
-    def insert(self, idx, data):
+            item.id = self.tree.next_id()
+            _list = [None] * (len(self.tree.headings) - len(item.columns))
+            item.columns += _list
+
+        return new_item
+
+    def insert(self, idx, item):
         if idx == int(const.END):
             idx = len(self)
         elif idx < int(const.START):
             idx = int(const.START)
 
-        if isinstance(data, Leaf) or isinstance(data, Node):
-            super(Node, self).insert(idx, data)
-            data.id = self.tree.next_id()
+        new_item = None
+        if isinstance(item, Leaf) or isinstance(item, Node):
+            super(Node, self).insert(idx, item)
+            new_item = self[len(self)-1]
+            if new_item.parent is None:
+                new_item.parent = self
+
+            item.id = self.tree.next_id()
+            _list = [None] * (len(self.tree.headings) - len(item.columns))
+            item.columns += _list
+        return new_item
 
     def to_list(self, parent=None):
         def set_data(_item, _data):
@@ -167,25 +202,27 @@ class Node(Base, deque):
         return data
 
     def populate(self, data, **kwargs):
-        if not data:
-            return
-
         def walk(_parent, _item):
             if 'children' in _item:
-                _item['columns'] = ['Node', '0 items', _parent.name]
                 item = Node(parent=_parent, **_item)
                 if 'children' in _item and len(_item['children']):
                     for node in _item['children']:
                         walk(item, node)
             else:
-                _item['columns'] = ['Leaf', '0 Kb', _parent.name]
                 item = Leaf(parent=_parent, **_item)
+            items.append(item)
             _parent.append(item)
 
+        if not data:
+            return
+
+        items = []
         parent = kwargs.get('parent', self)
         if isinstance(data, list):
             for cfg in data:
                 walk(parent, cfg)
+
+        return items
 
     def get_cell(self, row, column):
         item = self.query(row)
@@ -253,18 +290,17 @@ class Node(Base, deque):
 
 
 class Tree(Node):
-    def __init__(self, data=None):
-        self.size = 0
-        self.headings = ['Type', 'Size', 'Parent']
+    def __init__(self, **kwargs):
+        self.items = 0
+        self.headings = kwargs.get('headings', [])
         super().__init__()
 
         self.name = '.'
         self.parent = None
-        self.populate(data)
 
     def next_id(self):
-        self.size += 1
-        return self.size
+        self.items += 1
+        return self.items
 
     def reindex(self, start=0):
         def walk(_parent):
@@ -273,7 +309,7 @@ class Tree(Node):
                 if _item.is_node():
                     walk(_item)
 
-        self.size = start
+        self.items = start
         for item in self:
             item.id = self.next_id()
             if item.is_node():
@@ -281,30 +317,105 @@ class Tree(Node):
 
 
 def main():
-    t = Tree()
-    # Create node with kwargs.
-    node = Node(parent=t, name='Test 1', columns=['Node', '0 items', t.name])
-    t.append(node)
+    def test1():
+        now = datetime.now()
+        dt_string = now.strftime("%Y/%m/%d %H:%M:%S")
 
-    leaf = Leaf(parent=t, name='Test 2', columns=['Leaf', '0 Kb', t.name])
-    t.append(leaf)
+        # Create a tree one item at a time, using either kwargs or a dictionary.
+        t = Tree(headings=['Type', 'Size', 'Last Modified', 'Path'])
 
-    # Create node with dict.
-    node = Node({'parent': t, 'name': 'Test 3', 'columns': ['Node', '0 items', t.name]})
-    t.append(node)
+        # Create node with kwargs.
+        node = Node(name='Test 1', columns=['Node', '0 items'])
+        # Append the node to the tree root.
+        t.append(node)
+        # Update two columns, one at a time.
+        node.set(3, dt_string)
+        node.set(4, node.path())
 
-    node = Node(parent=t, name='Test 4', columns=['Node', '0 items', t.name])
-    t.append(node)
+        # Create node with dictionary, and update some columns.
+        node = Node({'name': 'Test 2', 'columns': ['Node', '0 items']})
+        # Append the node to the tree.
+        t.append(node)
+        # Update two columns, one at a time.
+        node.set(3, dt_string)
+        node.set(4, node.path())
 
-    node = Node(parent=t, name='Test 5', columns=['Node', '0 items', t.name])
-    t.append(node)
+        leaf = Leaf(name='Test 3', columns=['Leaf', '0 Kb'])
+        t.append(leaf)
+        leaf.set(3, dt_string)
+        leaf.set(4, leaf.path())
 
-    leaf = Leaf(parent=node, name='Leaf 5-1', columns=['Leaf', '0 Kb', node.name])
-    node.append(leaf)
+        node = Node(name='Test 4', columns=['Node', '0 items'])
+        t.append(node)
+        node.set(3, dt_string)
+        node.set(4, node.path())
 
-    t.show()
+        node = Node(name='Test 5', columns=['Node', '0 items'])
+        t.append(node)
+        node.set(3, dt_string)
+        node.set(4, node.path())
 
-    cfg = [{
+        leaf = Leaf(name='Leaf 5-1', columns=['Leaf', '0 Kb'])
+        # Append the leaf to the node.
+        node.append(leaf)
+
+        # Update 3 column values.
+        node.set((2, 3, 4), ('1 item', dt_string, leaf.path()))
+
+        t.show()
+
+    def test2():
+        t = Tree(headings=['Type', 'Size', 'Path'])
+
+        node = t.append(Node(name='Test Node 1'))
+        node.set((1, 3), (node.type, node.path()))
+
+        item = node.append(Leaf(name='Test Leaf 1'))
+
+        item.set((1, 2, 3), (item.type, '0 Kb', item.path()))
+        node.set(2, '1 item' if len(node) == 1 else f'{len(node)} items')
+
+        item = node.insert(0, Leaf({'name': 'Test Leaf 2'}))  # Insert this leaf at the start of the node.
+        item.set((1, 2, 3), (item.type, '0 Kb', item.path()))
+        node.set(2, '1 item' if len(node) == 1 else f'{len(node)} items')
+
+        sub_node = Node({'name': 'Test Sub Node 1'})
+        node.append(sub_node)
+        sub_node.set((1, 2, 3), (item.type, '0 items', item.path()))
+        node.set(2, '1 item' if len(node) == 1 else f'{len(node)} items')
+
+        item = Leaf({'name': 'Test Sub Leaf 1'})
+        sub_node.append(item)
+        item.set((1, 2, 3), (item.type, '0 Kb', item.path()))
+
+        cell_data = '1 item' if len(sub_node) == 1 else f'{len(sub_node)} items'
+        sub_node.set(2, cell_data)
+
+        t.show()
+
+    def test3():
+        t = Tree(headings=['Type', 'Size', 'Path'])
+        items = t.populate(data)
+
+        for item in items:
+            word = '0 Kb'
+            if item.is_node():
+                word = '1 item' if len(item) == 1 else f'{len(item)} items'
+            item.set((1, 2, 3), (item.type, word, item.path()))
+        t.show()
+
+        items = t.query('Node 1a-1').populate(data)  # ./Node 1a/Node 1a-1, populate node from dictionary.
+        for item in items:
+            word = '0 Kb'
+            if item.is_node():
+                word = '1 item' if len(item) == 1 else f'{len(item)} items'
+            item.set((1, 2, 3), (item.type, word, item.path()))
+        t.show()
+
+        t.reindex()  # Reindex the complete tree.
+        t.show()
+
+    data = [{
         'name': 'Node 1a',
         'children': [
             {
@@ -347,44 +458,9 @@ def main():
         ],
     }]
 
-    t = Tree(cfg)
-    t.show()
-
-    t[0][1].populate(cfg)
-    t.show()
-
-    item = Node({'name': 'Test Node 1', 'columns': ['Node', '0 items', t[0].name]})
-    t[0].insert(1, item)
-
-    item = Leaf({'name': 'Test Leaf 1', 'columns': ['Leaf', '0 Kb', t[0].name]})
-    t[0].insert(1, item)
-
-    item = Leaf({'name': 'Test Leaf 2', 'columns': ['Leaf', '0 Kb', t.name]})
-    t.append(item)
-
-    t.reindex()
-    t.show()
-
-    t = Tree(config)
-    t.show()
-
-    print('------------------------------------------------------')
-
-    item = t.query('Node One/Node Three')
-    print(f'ID:{item.id}, Name:{item.name}, Path:{item.path()}')
-
-    t.copy(item, item.query('Node One/Node Two'))
-    t.show()
-
-    print('------------------------------------------------------')
-
-    item = item.query('Node Four/Leaf Four')
-    print(f'ID:{item.id}, Name:{item.name}, Path:{item.path()}')
-
-    item = item.query('Node Four/Leaf Four')
-    print(f'ID:{item.id}, Name:{item.name}, Path:{item.path()}')
-
-    print('------------------------------------------------------')
+    test1()
+    test2()
+    test3()
 
 
 if __name__ == '__main__':

@@ -10,7 +10,8 @@ class TestTree(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures, if any."""
         self.cfg = deepcopy(data)
-        self.t = Tree(self.cfg)
+        self.t = Tree(headings=['Column1', 'Column2', 'Column3'])
+        self.t.populate(data=self.cfg)
 
     def tearDown(self):
         """Tear down test fixtures, if any."""
@@ -21,9 +22,23 @@ class TestTree(unittest.TestCase):
 
         # Asert, that get() gets the correct column value.
         self.assertEqual('Node One', t[0].get(0))
-        self.assertEqual('Node', t[0].get(1))
+
+        # Action, get an item.
+        item = t.path('/Node One/Node Two')
+
+        # Action, set cell value.
+        item.set(1, item.type)
+
+        # Asert, that the value == value set.
+        self.assertEqual(item.type, item.get(1))
+
+        # Asert, that the get value is correct.
         self.assertEqual('Leaf Three', t[0][3][0].get(0))
-        self.assertEqual('Leaf', t[0][3][0].get(1))
+
+        # Action, set cell value.
+        t[0][3][0].set(1, 'Leaf')  # Note, t[0][3][0] == /Node One/Node Three/Leaf Three
+        # Asert, that the get value is correct.
+        self.assertEqual('Leaf', t.query('/Node One/Node Three/Leaf Three').get(1))
 
     def test_set(self):
         # Action, get tree
@@ -46,7 +61,19 @@ class TestTree(unittest.TestCase):
 
         # Asert, make sure we get the correct column values.
         self.assertEqual('Some Name', t[0][3][0].get(0))
-        self.assertEqual('101 items', t[0][3][0].get(1))
+        node = t.query('/New Name/Node Three/Some Name')
+        node.set(1, '102 items')
+        self.assertEqual('102 items', t[0][3][0].get(1))
+
+        # Action, set new values for columns.
+        node.set((1, 2, 3), ('One', 'Two', 'Three'))
+
+        # # Asert, make sure we get the correct column values.
+        self.assertEqual('One', node.get(1))
+        self.assertEqual('Two', node.get(2))
+        self.assertEqual('Three', node.get(3))
+        self.assertEqual(('One', 'Two', 'Three'), node.get((1, 2, 3)))
+        self.assertEqual(('Some Name', 'One', 'Two', 'Three'), node.get())
 
     def test_path(self):
         # Action, get tree
@@ -54,7 +81,7 @@ class TestTree(unittest.TestCase):
 
         # Action, get an item by name and get an item by path.
         item_by_name = t.query('Leaf Four')
-        item_by_path = t.path('./Node One/Node Three/Node Four/Leaf Four')
+        item_by_path = t.path('/Node One/Node Three/Node Four/Leaf Four')
         # Asert, test that both paths are equal.
         self.assertEqual(item_by_name, item_by_path)
 
@@ -63,7 +90,7 @@ class TestTree(unittest.TestCase):
         # Action, get a sub node.
         node = t.path('Node One/Node Three')
         # # Asert, test that both paths are equal.
-        self.assertEqual('Node One/Node Three/Node Four/Leaf Four', node.path('Node Four/Leaf Four').path())
+        self.assertEqual('/Node One/Node Three/Node Four/Leaf Four', node.path('Node Four/Leaf Four').path())
 
     def test_copy(self):
         # Action, get tree
@@ -144,7 +171,7 @@ class TestTree(unittest.TestCase):
         t = deepcopy(self.t)
 
         # Action, set item counter to 0.
-        t.size = 0
+        t.items = 0
 
         # Action, create leafs.
         leaf1 = Leaf({'name': 'test leaf1'})
@@ -215,10 +242,16 @@ class TestTree(unittest.TestCase):
         # Action, get tree.
         t = self.t
 
-        # Asert, column value == expected value.
-        _id = t.query('Node Three').id
-        self.assertEqual('Node', t.get_cell(_id, 1))
-        self.assertEqual('0 items', t.get_cell('Node Three', 2))
+        # Action, get an item.
+        node = t.query('Node Three')
+        node.set(1, 'Test Node')
+        node.set(2, '101 items')
+
+        # Asert, column value == expected value, by id.
+        self.assertEqual('Test Node', t.get_cell(node.id, 1))
+
+        # Asert, column value == expected value, by name.
+        self.assertEqual('101 items', t.get_cell('Node Three', 2))
 
     def test_set_cell(self):
         # Action, get tree.
