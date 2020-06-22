@@ -41,6 +41,9 @@ class Base:
             self.columns[column-1] = value
 
     def path(self, uri=None):
+        if uri and uri.startswith('./'):
+            uri = uri.lstrip('./')
+
         if not uri:
             parts = [self.name]
 
@@ -48,13 +51,31 @@ class Base:
             while node and node:
                 parts.append(node.name)
                 node = node.parent
-            return '/'.join(list(reversed(parts)))
+
+            return '/'.join(list(reversed(parts))).lstrip('./')
 
         item = None
         parts = uri.split('/')
         while parts:
-            item = self.tree.query(parts.pop(0)) if isinstance(self, Tree) else self.query(parts.pop(0))
+            if isinstance(self, Tree):
+                item = self.tree.query(parts.pop(0))
+            elif isinstance(self, Node):
+                item = self.query(parts.pop(0))
+            else:
+                item = self.query(parts.pop(0))
+
         return item
+
+    def query(self, query):
+        node = self if not isinstance(self, Tree) else self.tree
+
+        if isinstance(query, int):
+            return node.query_by_id(query)
+        elif isinstance(query, str):
+            if '/' in query:
+                return self.path(query)
+            else:
+                return self.tree.query_by_name(query)
 
     def delete(self, item=None):
         node = item if item else self
@@ -62,7 +83,7 @@ class Base:
         del node.parent[idx]
 
     def is_node(self, item=None):
-        if not item:
+        if item is None:
             item = self
         return True if isinstance(item, Node) else False
 
@@ -72,7 +93,7 @@ class Leaf(Base):
         super().__init__(data, **kwargs)
 
     def __len__(self):
-        return 0
+        return None
 
 
 class Node(Base, deque):
@@ -103,13 +124,6 @@ class Node(Base, deque):
         print(f'   ID: Name, Columns: {str(self.tree.headings)}')
         print('-----------------------------------------------------')
         walk(parent if parent else self)
-
-    def query(self, query):
-
-        if isinstance(query, int):
-            return self.query_by_id(query)
-        elif isinstance(query, str):
-            return self.query_by_name(query)
 
     def append(self, item):
         if isinstance(item, Leaf) or isinstance(item, Node):
@@ -148,7 +162,25 @@ class Node(Base, deque):
         return data
 
     def populate(self, data, **kwargs):
-        self.tree.populate(data, parent=self)
+        if not data:
+            return
+
+        def walk(_parent, _item):
+            if 'children' in _item:
+                _item['columns'] = ['Node', '0 items', _parent.name]
+                item = Node(parent=_parent, **_item)
+                if 'children' in _item and len(_item['children']):
+                    for node in _item['children']:
+                        walk(item, node)
+            else:
+                _item['columns'] = ['Leaf', '0 Kb', _parent.name]
+                item = Leaf(parent=_parent, **_item)
+            _parent.append(item)
+
+        parent = kwargs.get('parent', self)
+        if isinstance(data, list):
+            for cfg in data:
+                walk(parent, cfg)
 
     def get_cell(self, row, column):
         item = self.query(row)
@@ -242,27 +274,6 @@ class Tree(Node):
             if item.is_node():
                 walk(item)
 
-    def populate(self, data, **kwargs):
-        if not data:
-            return
-
-        def walk(_parent, _item):
-            if 'children' in _item:
-                _item['columns'] = ['Node', '0 items', _parent.name]
-                item = Node(parent=_parent, **_item)
-                if 'children' in _item and len(_item['children']):
-                    for node in _item['children']:
-                        walk(item, node)
-            else:
-                _item['columns'] = ['Leaf', '0 Kb', _parent.name]
-                item = Leaf(parent=_parent, **_item)
-            _parent.append(item)
-
-        parent = kwargs.get('parent', self)
-        if isinstance(data, list):
-            for cfg in data:
-                walk(parent, cfg)
-
 
 def main():
     t = Tree()
@@ -349,15 +360,19 @@ def main():
     t.reindex()
     t.show()
 
-    print('------------------------------------------------------')
-
     t = Tree(config)
     t.show()
 
+    print('------------------------------------------------------')
+
     item = t.path('Node One/Node Three')
-    print(item.name, item.path())
-    item = item.path('Node One/Node Three/Node Four/Leaf Four')
-    print(item.name, item.path())
+    print(f'ID:{item.id}, Name:{item.name}, Path:{item.path()}')
+
+    item = item.query('Node Four/Leaf Four')
+    print(f'ID:{item.id}, Name:{item.name}, Path:{item.path()}')
+
+    item = item.path('Node Four/Leaf Four')
+    print(f'ID:{item.id}, Name:{item.name}, Path:{item.path()}')
 
     print('------------------------------------------------------')
 
