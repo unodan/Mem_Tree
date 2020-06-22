@@ -230,7 +230,8 @@ class TestTree(unittest.TestCase):
         config_data = json.dumps(cfg, sort_keys=True)
 
         # Action, create tree from config.
-        t = Tree(cfg)
+        t = Tree()
+        t.populate(cfg)
 
         # Action, convert tree to json.
         tree_data = json.dumps(t.to_list(), sort_keys=True)
