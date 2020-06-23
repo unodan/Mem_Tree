@@ -29,7 +29,8 @@ class Base:
 
     @staticmethod
     def copy(src, dst):
-        dst.append(deepcopy(src))
+        x = dst.append(deepcopy(src))
+        return x
 
     def get(self, columns=None):
         if columns is None:
@@ -101,8 +102,7 @@ class Base:
 
     def delete(self, item=None):
         node = item if item else self
-        idx = node.parent.index(node)
-        del node.parent[idx]
+        del node.parent[node.parent.index(node)]
 
     def is_node(self, item=None):
         if item is None:
@@ -454,9 +454,28 @@ def main():
         ],
     }]
 
-    test1()
-    test2()
-    test3()
+    def test4():
+        t = Tree(headings=['Type', 'Size', 'Path'])
+        items = t.populate(data)
+        for item in items:
+            word = '0 Kb'
+            if item.is_node():
+                word = '1 item' if len(item) == 1 else f'{len(item)} items'
+            item.set((1, 2, 3), (item.type, word, item.path()))
+        t.show()
+        print('------------------------------------------------------')
+
+        t.copy(t.query('Sub Node 1a'), t.query('Node 1a-1'))
+        t.show()
+
+        t.query('Node 1a-1').remove(t.query('Sub Node 1a'))
+
+        t.show()
+
+    # test1()
+    # test2()
+    # test3()
+    test4()
 
 
 if __name__ == '__main__':
