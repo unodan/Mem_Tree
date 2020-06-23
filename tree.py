@@ -1,7 +1,6 @@
 from enum import IntEnum
 from collections import deque
 from datetime import datetime
-from config import data as config
 from copy import deepcopy
 
 const = IntEnum('Constants', 'END START', start=-1)
@@ -168,17 +167,16 @@ class Node(Base, deque):
         elif idx < int(const.START):
             idx = int(const.START)
 
-        new_item = None
         if isinstance(item, Leaf) or isinstance(item, Node):
             super(Node, self).insert(idx, item)
-            new_item = self[len(self)-1]
-            if new_item.parent is None:
-                new_item.parent = self
+
+            if item.parent is None:
+                item.parent = self
 
             item.id = self.tree.next_id()
             _list = [None] * (len(self.tree.headings) - len(item.columns))
             item.columns += _list
-        return new_item
+        return item
 
     def to_list(self, parent=None):
         def set_data(_item, _data):
@@ -365,31 +363,29 @@ def main():
         t.show()
 
     def test2():
+        def get_size(_node):
+            return '1 item' if len(_node) == 1 else f'{len(_node)} items'
+
         t = Tree(headings=['Type', 'Size', 'Path'])
 
         node = t.append(Node(name='Test Node 1'))
         node.set((1, 3), (node.type, node.path()))
 
         item = node.append(Leaf(name='Test Leaf 1'))
-
         item.set((1, 2, 3), (item.type, '0 Kb', item.path()))
-        node.set(2, '1 item' if len(node) == 1 else f'{len(node)} items')
+        node.set(2, get_size(node))
 
         item = node.insert(0, Leaf({'name': 'Test Leaf 2'}))  # Insert this leaf at the start of the node.
         item.set((1, 2, 3), (item.type, '0 Kb', item.path()))
-        node.set(2, '1 item' if len(node) == 1 else f'{len(node)} items')
+        node.set(2, get_size(node))
 
-        sub_node = Node({'name': 'Test Sub Node 1'})
-        node.append(sub_node)
-        sub_node.set((1, 2, 3), (item.type, '0 items', item.path()))
-        node.set(2, '1 item' if len(node) == 1 else f'{len(node)} items')
+        sub_node = node.append(Node(name='Test Sub Node 1'))
+        sub_node.set((1, 2, 3), (item.type, '0 items', sub_node.path()))
+        node.set(2, get_size(node))
 
-        item = Leaf({'name': 'Test Sub Leaf 1'})
-        sub_node.append(item)
-        item.set((1, 2, 3), (item.type, '0 Kb', item.path()))
-
-        cell_data = '1 item' if len(sub_node) == 1 else f'{len(sub_node)} items'
-        sub_node.set(2, cell_data)
+        leaf = sub_node.append(Leaf({'name': 'Test Sub Leaf 1'}))
+        leaf.set((1, 2, 3), (item.type, '0 items', leaf.path()))
+        sub_node.set(2, get_size(sub_node))
 
         t.show()
 
