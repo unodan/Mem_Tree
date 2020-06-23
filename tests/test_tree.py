@@ -24,7 +24,7 @@ class TestTree(unittest.TestCase):
         self.assertEqual('Node One', t[0].get(0))
 
         # Action, get an item.
-        item = t.path('/Node One/Node Two')
+        item = t.query('/Node One/Node Two')
 
         # Action, set cell value.
         item.set(1, item.type)
@@ -81,33 +81,30 @@ class TestTree(unittest.TestCase):
 
         # Action, get an item by name and get an item by path.
         item_by_name = t.query('Leaf Four')
-        item_by_path = t.path('/Node One/Node Three/Node Four/Leaf Four')
         # Asert, test that both paths are equal.
-        self.assertEqual(item_by_name, item_by_path)
-
-        t.show()
+        self.assertEqual('/Node One/Node Three/Node Four/Leaf Four', item_by_name.path())
 
         # Action, get a sub node.
-        node = t.path('Node One/Node Three')
-        # # Asert, test that both paths are equal.
-        self.assertEqual('/Node One/Node Three/Node Four/Leaf Four', node.path('Node Four/Leaf Four').path())
+        node = t.query('Node One/Node Three')
+        # Asert, test that both paths are equal.
+        self.assertEqual('/Node One/Node Three/Node Four/Leaf Four', node.query('Node Four/Leaf Four').path())
 
     def test_copy(self):
         # Action, get tree
         t = self.t
 
         # Action, get source and destination.
+        dst = t.query('Node One/Node Two')
         src = t.query('Node One/Node Three')
-        dst = src.query('Node One/Node Two')
 
         # Action, do the copy.
-        t.copy(src, dst)
+        t.clone(src, dst)
 
         # Action. serialize data for comparing.
         src_data = json.dumps(src.to_list(), sort_keys=True)
-        dst_data = json.dumps(dst.query('Node Three').to_list(), sort_keys=True)
-
-        # Asert, source and destination data are equal.
+        dst_data = json.dumps(dst.to_list(), sort_keys=True)
+        #
+        # # Asert, source and destination data are equal.
         self.assertEqual(src_data, dst_data)
 
     def test_query(self):
@@ -148,6 +145,8 @@ class TestTree(unittest.TestCase):
         # Asert, test to see if node was deleted.
         self.assertIsNone(node)
 
+        # Action, get node.
+
     def test_append(self):
         # Action, get tree.
         t = self.t
@@ -160,7 +159,7 @@ class TestTree(unittest.TestCase):
         self.assertEqual(leaf, t[-1])
 
         # Action, append leaf in the root of a subtree.
-        subtree = t.query_by_name('Node Four')
+        subtree = t.query('Node Four')
         subtree.append(leaf)
 
         # Asert, leaf == last item, in the root of the subtree.
@@ -203,7 +202,7 @@ class TestTree(unittest.TestCase):
         subtree.insert(len(subtree), leaf3)
 
         # Asert, leaf == item inserted at index.
-        self.assertEqual(subtree, t.query_by_name('Node Three'))
+        self.assertEqual(subtree, t.query('Node Three'))
         self.assertEqual(leaf1, subtree[0])
         self.assertEqual(leaf2, subtree[2])
         self.assertEqual(leaf3, subtree[len(subtree)-1])
@@ -213,13 +212,13 @@ class TestTree(unittest.TestCase):
         t = self.t
 
         # Action, get a node.
-        node = t.path('Node One/Node Two')
+        node = t.query('Node One/Node Two')
 
         # Asert, test that the types are equal.
         self.assertEqual(Node, type(node))
 
         # Action, get a leaf.
-        leaf = t.path('Node One/Leaf One')
+        leaf = t.query('Node One/Leaf One')
 
         # Asert, test that the types are equal.
         self.assertEqual(Leaf, type(leaf))
@@ -287,31 +286,31 @@ class TestTree(unittest.TestCase):
         self.assertEqual(_list, _dump)
 
         # Action, assign source and target data, complete node.
-        node = t.query_by_name('Node Three')
+        node = t.query('Node Three')
         _list = json.dumps(node.to_list(), sort_keys=True)
         _dump = json.dumps(cfg[0]['children'][3]['children'], sort_keys=True)
 
         # Asert, source and target are equal.
         self.assertEqual(_list, _dump)
 
-    def test_query_by_id(self):
-        # Action, get tree.
-        t = self.t
-
-        # Action, get target id.
-        target = t[0]
-        _id = target.id
-
-        # Asert, ids match from query.
-        self.assertEqual(_id, t.query_by_id(_id).id)
-
-    def test_query_by_name(self):
-        # Action, get tree.
-        t = self.t
-
-        # Asert, get target name.
-        target = t[0]
-        name = target.name
-
-        # Asert, names match from query.
-        self.assertEqual(name, t.query_by_name(name).name)
+    # def test_query_by_id(self):
+    #     # Action, get tree.
+    #     t = self.t
+    #
+    #     # Action, get target id.
+    #     target = t[0]
+    #     _id = target.id
+    #
+    #     # Asert, ids match from query.
+    #     self.assertEqual(_id, t.query_by_id(_id).id)
+    #
+    # def test_query_by_name(self):
+    #     # Action, get tree.
+    #     t = self.t
+    #
+    #     # Asert, get target name.
+    #     target = t[0]
+    #     name = target.name
+    #
+    #     # Asert, names match from query.
+    #     self.assertEqual(name, t.query_by_name(name).name)
