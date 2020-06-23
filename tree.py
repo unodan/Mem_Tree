@@ -8,16 +8,16 @@ const = IntEnum('Constants', 'END START', start=-1)
 class Base:
     def __init__(self, data=None, **kwargs):
         self.type = None
-
-        self.id = kwargs.get('id')
-        self.name = kwargs.get('name')
-        self.parent = kwargs.get('parent')
-        self.columns = kwargs.get('columns', [])
         if data:
             self.id = data.get('id')
             self.name = data.get('name')
             self.parent = data.get('parent')
             self.columns = data.get('columns', [])
+        else:
+            self.id = kwargs.get('id')
+            self.name = kwargs.get('name')
+            self.parent = kwargs.get('parent')
+            self.columns = kwargs.get('columns', [])
 
     @property
     def tree(self):
@@ -29,8 +29,10 @@ class Base:
     def get(self, columns=None):
         if columns is None:
             columns = tuple(range(0, len(self.tree.headings)+1))
-        elif not isinstance(columns, tuple):
+        elif isinstance(columns, int):
             columns = (columns, )
+        elif not isinstance(columns, tuple):
+            return
 
         data = []
         for column in columns:
@@ -44,8 +46,12 @@ class Base:
         return data[0] if len(data) == 1 else tuple(data) if data else None
 
     def set(self, columns, values):
-        if not isinstance(columns, tuple):
+
+        if isinstance(columns, int):
             columns = (columns, )
+        elif not isinstance(columns, tuple):
+            return
+
         if not isinstance(values, tuple):
             values = (values, )
 
@@ -58,13 +64,12 @@ class Base:
                 self.columns[column-1] = value
 
     def path(self):
-        parts = []
+        uri = []
         item = self
         while item is not None:
-            parts.append(item.name)
+            uri.append(item.name)
             item = item.parent
-
-        return '/'.join(list(reversed(parts))).lstrip('.')
+        return '/'.join(list(reversed(uri))).lstrip('.')
 
     def clone(self, src, dst):
         items = []
@@ -75,7 +80,6 @@ class Base:
                     new_item = dst.append(node)
                     new_item.parent = dst
                     items.append(new_item)
-
                     if len(item):
                         self.clone(item, new_item)
                 else:
@@ -186,13 +190,13 @@ class Node(Base, deque):
         new_item = None
         if isinstance(item, Leaf) or isinstance(item, Node):
             super(Node, self).append(item)
+
             new_item = self[len(self)-1]
             if new_item.parent is None:
                 new_item.parent = self
 
             item.id = self.tree.next_id()
-            _list = [None] * (len(self.tree.headings) - len(item.columns))
-            item.columns += _list
+            item.columns += [None] * (len(self.tree.headings) - len(item.columns))
 
         return new_item
 
@@ -209,8 +213,7 @@ class Node(Base, deque):
                 item.parent = self
 
             item.id = self.tree.next_id()
-            _list = [None] * (len(self.tree.headings) - len(item.columns))
-            item.columns += _list
+            item.columns += [None] * (len(self.tree.headings) - len(item.columns))
         return item
 
     def to_list(self, parent=None):
@@ -235,25 +238,24 @@ class Node(Base, deque):
         return data
 
     def populate(self, data, **kwargs):
-        def walk(_parent, _item):
-            if 'children' in _item:
-                item = Node(parent=_parent, **_item)
-                if 'children' in _item and len(_item['children']):
-                    for node in _item['children']:
-                        walk(item, node)
+        def walk(parent, item):
+            if 'children' in item:
+                new_node = Node(parent=parent, **item)
+                if 'children' in item and len(item['children']):
+                    for node in item['children']:
+                        walk(new_node, node)
             else:
-                item = Leaf(parent=_parent, **_item)
-            items.append(item)
-            _parent.append(item)
+                new_node = Leaf(parent=parent, **item)
+            items.append(new_node)
+            parent.append(new_node)
 
         if not data:
             return
 
         items = []
-        parent = kwargs.get('parent', self)
         if isinstance(data, list):
             for cfg in data:
-                walk(parent, cfg)
+                walk(kwargs.get('parent', self), cfg)
 
         return items
 
@@ -478,10 +480,10 @@ def main():
         ],
     }]
 
-    test1()
+    # test1()
     # test2()
     # test3()
-    # test4()
+    test4()
 
 
 if __name__ == '__main__':
