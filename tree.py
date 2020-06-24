@@ -141,52 +141,21 @@ class Node(Base, deque):
         walk(parent if parent else self)
 
     def query(self, query):
-        def search():
-            for child in self:
-                if child.name == query:
-                    return child
-                if child.is_node():
-                    result = child.query(query)
-                    if result is not None:
-                        return result
-
-        def get_by_id():
-            _id = query
-
-            for child in self:
-                if child.id == _id:
-                    return child
-
-                if child.is_node() and len(child):
-                    result = child.query(_id)
-                    if result is not None:
-                        return result
-
-        def get_by_name():
-            _query = query.lstrip('/').split('/', 1)
-
-            segment = _query.pop(0)
-            for child in self:
-                if child.name == segment:
-                    if not _query:
-                        return child
-                    else:
-                        result = child.query(_query[0])
-                        if result is not None:
-                            return result
-            else:
-                return search()
-
         if isinstance(query, int):
-            item = get_by_id()
+            item = self.find_by_id(query)
         elif isinstance(query, str):
-            item = get_by_name()
+            item = self.find_by_name(query)
         else:
             item = None
 
         return item
 
     def append(self, item) -> str:
+        if self.tree.unique:
+            for i in self:
+                if i.name == item.name:
+                    raise ValueError(f'duplicate name {item.name} found.')
+
         new_item = None
         if isinstance(item, Leaf) or isinstance(item, Node):
             super(Node, self).append(item)
@@ -201,6 +170,11 @@ class Node(Base, deque):
         return new_item
 
     def insert(self, idx, item):
+        if self.tree.unique:
+            for i in self:
+                if i.name == item.name:
+                    raise ValueError(f'duplicate name {item.name}" found.')
+
         if idx == int(const.END):
             idx = len(self)
         elif idx < int(const.START):
@@ -215,6 +189,44 @@ class Node(Base, deque):
             item.id = self.tree.next_id()
             item.columns += [None] * (len(self.tree.headings) - len(item.columns))
         return item
+
+    def find_by_id(self, _id):
+        for child in self:
+            if child.id == _id:
+                return child
+
+            if child.is_node() and len(child):
+                result = child.query(_id)
+                if result is not None:
+                    return result
+
+    def find_by_name(self, query):
+        def find(parent, _query):
+            for child in parent:
+                if child.name == query:
+                    return child
+
+            for child in parent:
+                if child.is_node():
+                    result = find(child, _query)
+                    if result is not None:
+                        return result
+
+        query = query.lstrip('/')
+        if '/' in query:
+            parts = query.split('/', 1)
+            seg = parts.pop(0)
+            for i in self:
+                if i.name == seg and not parts:
+                    return i
+
+                if i.is_node() and len(i):
+                    x = i.find_by_name(parts[0])
+                    if x is not None:
+                        return x
+
+        else:
+            return find(self, query)
 
     def to_list(self, parent=None):
         def set_data(_item, _data):
@@ -277,10 +289,39 @@ class Node(Base, deque):
         else:
             item.name = value
 
+    def get_items(self, name):
+        items = []
+        for i in self:
+            if i.name == name:
+                items.append(i)
+        return items
+
+    def find_all(self, query, recursive=False):
+        def find(item):
+            if item.name == query:
+                items.append(item)
+
+            for child in item:
+                if '/' in query and query not in child.path() and child.is_node():
+                    for d in child:
+                        if query in d.path() and d not in items:
+                            items.append(d)
+                        if d.is_node() and recursive:
+                            find(d)
+                elif query in child.path() and child not in items:
+                    items.append(child)
+                elif recursive and child.is_node():
+                    find(child)
+
+        items = []
+        find(self)
+        return items
+
 
 class Tree(Node):
     def __init__(self, **kwargs):
         self.items = 0
+        self.unique = kwargs.get('unique', True)
         self.headings = kwargs.get('headings', [])
         super().__init__()
 
@@ -432,10 +473,72 @@ def main():
 
         # Removed the node cloned.
         x = t.query('Node 1a-1')
-        print(x.id, x.name, x.path())
 
         # t.reindex()
         t.show()
+
+    def test5():
+        now = datetime.now()
+        dt_string = now.strftime("%Y/%m/%d %H:%M:%S")
+
+        t = Tree(headings=['Type', 'Size', 'Path'], unique=False)
+
+        leaf = Leaf(name='Test 3', columns=['Leaf', '0 Kb'])
+        t.append(leaf)
+        leaf.set(3, dt_string)
+        leaf.set(4, leaf.path())
+
+        leaf = Leaf(name='Test 3', columns=['Leaf', '0 Kb'])
+        t.append(leaf)
+        leaf.set(3, dt_string)
+        leaf.set(4, leaf.path())
+
+        # Create node with kwargs.
+        node = Node(name='Test 1', columns=['Node', '0 items'])
+        # Append the node to the tree root.
+        t.append(node)
+
+        leaf = Leaf(name='Test 3', columns=['Leaf', '0 Kb'])
+        node.append(leaf)
+        leaf.set(3, dt_string)
+        leaf.set(4, leaf.path())
+
+        # Create node with kwargs.
+        node = Node(name='Test 1', columns=['Node', '0 items'])
+        # Append the node to the tree root.
+        t.append(node)
+
+        leaf = Leaf(name='Test 3', columns=['Leaf', '0 Kb'])
+        node.append(leaf)
+        leaf.set(3, dt_string)
+        leaf.set(4, leaf.path())
+
+        # Create node with kwargs.
+        nodex = Node(name='Test 1', columns=['Node', '0 items'])
+        # Append the node to the tree root.
+        node.append(nodex)
+
+        leaf = Leaf(name='Test 3', columns=['Leaf', '0 Kb'])
+        nodex.append(leaf)
+        leaf.set(3, dt_string)
+        leaf.set(4, leaf.path())
+
+        t.show()
+
+        print('-----------------------------------------------------')
+
+        for i in t.find_all('Test 3'):
+            print(i.id, i.name, i.columns)
+
+        print('-----------------------------------------------------')
+
+        for i in t.find_all('Test 3', recursive=True):
+            print(i.id, i.name, i.columns)
+
+        print('-----------------------------------------------------')
+
+        for i in t.find_all('Test 1/Test 3', recursive=True):
+            print(i.id, i.name, i.columns)
 
     data = [{
         'name': 'Node 1a',
@@ -483,7 +586,8 @@ def main():
     # test1()
     # test2()
     # test3()
-    test4()
+    # test4()
+    test5()
 
 
 if __name__ == '__main__':

@@ -16,15 +16,27 @@ class TestTree(unittest.TestCase):
     def tearDown(self):
         """Tear down test fixtures, if any."""
 
+    def test_find(self):
+        # Action, get tree
+        t = self.t
+
+        # Asert, that we get the correct cell value.
+        self.assertEqual('Node One', t[0].get(0))
+        self.assertEqual('Node One', t.find_by_name('Node One').get(0))
+
+        print(t.find_by_name('Node One').name)
+        print(t.find_by_name('/Node Three').name)
+
     def test_get(self):
         # Action, get tree
         t = self.t
 
-        # Asert, that get() gets the correct column value.
+        # Asert, that we get the correct cell value.
         self.assertEqual('Node One', t[0].get(0))
+        self.assertEqual('Node One', t.query('Node One').get(0))
 
         # Action, get an item.
-        item = t.query('/Node One/Node Two')
+        item = t.query('Node One/Node Two')
 
         # Action, set cell value.
         item.set(1, item.type)
@@ -34,11 +46,12 @@ class TestTree(unittest.TestCase):
 
         # Asert, that the get value is correct.
         self.assertEqual('Leaf Three', t[0][3][0].get(0))
+        self.assertEqual('Leaf Three', t.query('Leaf Three').get(0))
 
         # Action, set cell value.
         t[0][3][0].set(1, 'Leaf')  # Note, t[0][3][0] == /Node One/Node Three/Leaf Three
         # Asert, that the get value is correct.
-        self.assertEqual('Leaf', t.query('/Node One/Node Three/Leaf Three').get(1))
+        self.assertEqual('Leaf', t.query('Node One/Node Three/Leaf Three').get(1))
 
     def test_set(self):
         # Action, get tree
@@ -55,13 +68,13 @@ class TestTree(unittest.TestCase):
         self.assertEqual('New Name', t[0].get(0))
         self.assertEqual('99 items', t[0].get(1))
 
-        # Action, set a new values for columns.
+        # Action, set new values for columns.
         t[0][3][0].set(0, 'Some Name')
         t[0][3][0].set(1, '101 items')
 
         # Asert, make sure we get the correct column values.
         self.assertEqual('Some Name', t[0][3][0].get(0))
-        node = t.query('/New Name/Node Three/Some Name')
+        node = t.query('New Name/Node Three/Some Name')
         node.set(1, '102 items')
         self.assertEqual('102 items', t[0][3][0].get(1))
 
@@ -73,7 +86,7 @@ class TestTree(unittest.TestCase):
         self.assertEqual('Two', node.get(2))
         self.assertEqual('Three', node.get(3))
         self.assertEqual(('One', 'Two', 'Three'), node.get((1, 2, 3)))
-        self.assertEqual(('Some Name', 'One', 'Two', 'Three'), node.get())
+        self.assertEqual(node.get(), ('Some Name', 'One', 'Two', 'Three'))
 
     def test_path(self):
         # Action, get tree
@@ -83,11 +96,6 @@ class TestTree(unittest.TestCase):
         item_by_name = t.query('Leaf Four')
         # Asert, test that both paths are equal.
         self.assertEqual('/Node One/Node Three/Node Four/Leaf Four', item_by_name.path())
-
-        # Action, get a sub node.
-        node = t.query('Node One/Node Three')
-        # Asert, test that both paths are equal.
-        self.assertEqual('/Node One/Node Three/Node Four/Leaf Four', node.query('Node Four/Leaf Four').path())
 
     def test_copy(self):
         # Action, get tree
@@ -125,6 +133,7 @@ class TestTree(unittest.TestCase):
 
         # Asert, make sure we get the correct target from the query.
         self.assertEqual('Leaf Four', t.query(_id).name)  # Query by id.
+        self.assertEqual('Leaf Four', t.find_by_name('Node Three/Node Four/Leaf Four').name)  # Query by id.
 
     def test_delete(self):
         # Action, get tree.
