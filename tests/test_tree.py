@@ -24,8 +24,8 @@ class TestTree(unittest.TestCase):
         self.assertEqual('Node One', t[0].get(0))
         self.assertEqual('Node One', t.find_by_name('Node One').get(0))
 
-        print(t.find_by_name('Node One').name)
-        print(t.find_by_name('/Node Three').name)
+        print(t.find_by_name('/Node One').name)
+        print(t.find_by_name('Node Four').name)
 
     def test_get(self):
         # Action, get tree
@@ -97,24 +97,6 @@ class TestTree(unittest.TestCase):
         # Asert, test that both paths are equal.
         self.assertEqual('/Node One/Node Three/Node Four/Leaf Four', item_by_name.path())
 
-    def test_copy(self):
-        # Action, get tree
-        t = self.t
-
-        # Action, get source and destination.
-        dst = t.query('Node One/Node Two')
-        src = t.query('Node One/Node Three')
-
-        # Action, do the copy.
-        t.clone(src, dst)
-
-        # Action. serialize data for comparing.
-        src_data = json.dumps(src.to_list(), sort_keys=True)
-        dst_data = json.dumps(dst.to_list(), sort_keys=True)
-        #
-        # # Asert, source and destination data are equal.
-        self.assertEqual(src_data, dst_data)
-
     def test_query(self):
         # Action, get tree.
         t = self.t
@@ -133,7 +115,7 @@ class TestTree(unittest.TestCase):
 
         # Asert, make sure we get the correct target from the query.
         self.assertEqual('Leaf Four', t.query(_id).name)  # Query by id.
-        self.assertEqual('Leaf Four', t.find_by_name('Node Three/Node Four/Leaf Four').name)  # Query by id.
+        self.assertEqual('Leaf Four', t.query('Node One/Node Three/Node Four/Leaf Four').name)  # Query by id.
 
     def test_delete(self):
         # Action, get tree.

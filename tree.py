@@ -1,6 +1,8 @@
 from enum import IntEnum
-from collections import deque
 from datetime import datetime
+from collections import deque
+
+import cProfile, pstats, io
 
 const = IntEnum('Constants', 'END START', start=-1)
 
@@ -26,6 +28,17 @@ class Base:
             item = item.parent
         return item
 
+    def clone(self, dst):
+        if isinstance(self, Node):
+            node = Node(name=self.name)
+            items = [node]
+            results = []
+            if isinstance(dst, Node):
+                dst.append(node)
+                results = node.populate(self.to_list())
+
+            return items + results
+
     def get(self, columns=None):
         if columns is None:
             columns = tuple(range(0, len(self.tree.headings)+1))
@@ -46,7 +59,6 @@ class Base:
         return data[0] if len(data) == 1 else tuple(data) if data else None
 
     def set(self, columns, values):
-
         if isinstance(columns, int):
             columns = (columns, )
         elif not isinstance(columns, tuple):
@@ -71,27 +83,6 @@ class Base:
             item = item.parent
         return '/'.join(list(reversed(uri))).lstrip('.')
 
-    def clone(self, src, dst):
-        items = []
-        if src.is_node():
-            for item in src:
-                if item.is_node():
-                    node = Node(parent=dst, name=item.name, columns=item.columns.copy())
-                    new_item = dst.append(node)
-                    new_item.parent = dst
-                    items.append(new_item)
-                    if len(item):
-                        self.clone(item, new_item)
-                else:
-                    item = Leaf(parent=dst, name=item.name, columns=item.columns.copy())
-                    new_item = dst.append(item)
-                    new_item.parent = dst
-                    items.append(new_item)
-        else:
-            pass
-
-        return items
-
     def delete(self, item=None):
         node = item if item else self
         parent = node.parent
@@ -107,6 +98,8 @@ class Leaf(Base):
     def __init__(self, data=None,  **kwargs):
         super().__init__(data, **kwargs)
         self.type = 'Leaf'
+        if self.parent is not None:
+            self.parent.append(self)
 
     def __len__(self):
         return None
@@ -117,10 +110,21 @@ class Node(Base, deque):
         Base.__init__(self, data, **kwargs)
         deque.__init__(self)
         self.type = 'Node'
+        if self.parent is not None:
+            self.parent.append(self)
 
     @property
     def children(self):
         return self
+
+    def move(self, dst):
+        if isinstance(dst, Node):
+            node = Node(name=self.name)
+            items = [node]
+            dst.append(node)
+            items += node.populate(self.to_list())
+            self.delete()
+            return items
 
     def show(self, parent=None, indent=2, index_pad=4):
         def walk(_parent, level=0):
@@ -150,9 +154,11 @@ class Node(Base, deque):
 
         return item
 
-    def append(self, item) -> str:
+    def append(self, item, parent=None) -> str:
+        parent = parent if parent else self
+
         if self.tree.unique:
-            for i in self:
+            for i in parent:
                 if i.name == item.name:
                     raise ValueError(f'duplicate name {item.name} found.')
 
@@ -160,23 +166,25 @@ class Node(Base, deque):
         if isinstance(item, Leaf) or isinstance(item, Node):
             super(Node, self).append(item)
 
-            new_item = self[len(self)-1]
+            new_item = parent[len(parent)-1]
             if new_item.parent is None:
-                new_item.parent = self
+                new_item.parent = parent
 
             item.id = self.tree.next_id()
             item.columns += [None] * (len(self.tree.headings) - len(item.columns))
 
         return new_item
 
-    def insert(self, idx, item):
+    def insert(self, idx, item, parent=None):
+        parent = parent if parent else self
+
         if self.tree.unique:
-            for i in self:
+            for i in parent:
                 if i.name == item.name:
                     raise ValueError(f'duplicate name {item.name}" found.')
 
         if idx == int(const.END):
-            idx = len(self)
+            idx = len(parent)
         elif idx < int(const.START):
             idx = int(const.START)
 
@@ -184,54 +192,16 @@ class Node(Base, deque):
             super(Node, self).insert(idx, item)
 
             if item.parent is None:
-                item.parent = self
+                item.parent = parent
 
             item.id = self.tree.next_id()
             item.columns += [None] * (len(self.tree.headings) - len(item.columns))
         return item
 
-    def find_by_id(self, _id):
-        for child in self:
-            if child.id == _id:
-                return child
-
-            if child.is_node() and len(child):
-                result = child.query(_id)
-                if result is not None:
-                    return result
-
-    def find_by_name(self, query):
-        def find(parent, _query):
-            for child in parent:
-                if child.name == query:
-                    return child
-
-            for child in parent:
-                if child.is_node():
-                    result = find(child, _query)
-                    if result is not None:
-                        return result
-
-        query = query.lstrip('/')
-        if '/' in query:
-            parts = query.split('/', 1)
-            seg = parts.pop(0)
-            for i in self:
-                if i.name == seg and not parts:
-                    return i
-
-                if i.is_node() and len(i):
-                    x = i.find_by_name(parts[0])
-                    if x is not None:
-                        return x
-
-        else:
-            return find(self, query)
-
     def to_list(self, parent=None):
         def set_data(_item, _data):
             for node in _item:
-                _item_data = {'name': node.name}
+                _item_data = {'name': node.name, 'columns': node.columns}
                 _data.append(_item_data)
                 if node.is_node():
                     _item_data['children'] = []
@@ -241,25 +211,27 @@ class Node(Base, deque):
         parent = parent if parent else self
         for item in parent:
             if item.is_node():
-                item_data = {'name': item.name, 'children': []}
+                item_data = {'name': item.name, 'columns': item.columns, 'children': []}
                 data.append(item_data)
                 set_data(item, item_data['children'])
             else:
-                item_data = {'name': item.name}
+                item_data = {'name': item.name, 'columns': item.columns}
                 data.append(item_data)
         return data
 
     def populate(self, data, **kwargs):
         def walk(parent, item):
             if 'children' in item:
-                new_node = Node(parent=parent, **item)
+                new_node = Node(**item)
+                parent.append(new_node, parent=parent)
                 if 'children' in item and len(item['children']):
                     for node in item['children']:
                         walk(new_node, node)
             else:
-                new_node = Leaf(parent=parent, **item)
+                new_node = Leaf(**item)
+                parent.append(new_node, parent=parent)
+
             items.append(new_node)
-            parent.append(new_node)
 
         if not data:
             return
@@ -289,13 +261,6 @@ class Node(Base, deque):
         else:
             item.name = value
 
-    def get_items(self, name):
-        items = []
-        for i in self:
-            if i.name == name:
-                items.append(i)
-        return items
-
     def find_all(self, query, recursive=False):
         def find(item):
             if item.name == query:
@@ -317,6 +282,47 @@ class Node(Base, deque):
         find(self)
         return items
 
+    def find_by_id(self, _id):
+        for child in self:
+            if child.id == _id:
+                return child
+
+            if child.is_node() and len(child):
+                result = child.query(_id)
+                if result is not None:
+                    return result
+
+    def find_by_name(self, query):
+        def find(parent, _query):
+            for _child in parent:
+                if _child.name == _query:
+                    return _child
+
+            for _child in parent:
+                if _child.is_node():
+                    result = find(_child, _query)
+                    if result is not None:
+                        return result
+
+        if '/' in query:
+            if query.startswith('/'):
+                item = None
+                parts = query.lstrip('/').split('/', 1)
+                for child in self.tree:
+                    if child.name == parts[0]:
+                        item = child
+                        break
+            else:
+                parts = query.split('/', 1)
+                item = find(self, parts.pop(0))
+
+            if item and query in item.path():
+                return item
+            elif item:
+                return item.find_by_name(parts[0])
+        else:
+            return find(self, query)
+
 
 class Tree(Node):
     def __init__(self, **kwargs):
@@ -325,6 +331,7 @@ class Tree(Node):
         self.headings = kwargs.get('headings', [])
         super().__init__()
 
+        self.id = 0
         self.name = '.'
         self.type = 'Tree'
         self.parent = None
@@ -348,7 +355,8 @@ class Tree(Node):
 
 
 def main():
-    def test1():
+    def examples1():
+        print('## EXAMPLE 1 ###############################################')
         now = datetime.now()
         dt_string = now.strftime("%Y/%m/%d %H:%M:%S")
 
@@ -405,9 +413,11 @@ def main():
 
         t.show()
 
-    def test2():
+    def examples2():
         def get_size(_node):
             return '1 item' if len(_node) == 1 else f'{len(_node)} items'
+
+        print('## EXAMPLE 2 ###############################################')
 
         t = Tree(headings=['Type', 'Size', 'Path'])
 
@@ -432,9 +442,11 @@ def main():
 
         t.show()
 
-    def test3():
+    def examples3():
+        print('## EXAMPLE 3 ###############################################')
+
         t = Tree(headings=['Type', 'Size', 'Path'])
-        items = t.populate(data)
+        items = t.populate(data1)
 
         for item in items:
             word = '0 Kb'
@@ -443,7 +455,7 @@ def main():
             item.set((1, 2, 3), (item.type, word, item.path()))
         t.show()
 
-        items = t.query('Node 1a-1').populate(data)  # ./Node 1a/Node 1a-1, populate node from dictionary.
+        items = t.query('Node 1a-1').populate(data1)
         for item in items:
             word = '0 Kb'
             if item.is_node():
@@ -451,12 +463,14 @@ def main():
             item.set((1, 2, 3), (item.type, word, item.path()))
         t.show()
 
-        t.reindex()  # Reindex the complete tree.
+        t.reindex()
         t.show()
 
-    def test4():
+    def examples4():
+        print('## EXAMPLE 4 ###############################################')
+
         t = Tree(headings=['Type', 'Size', 'Path'])
-        items = t.populate(data)
+        items = t.populate(data1)
         for item in items:
             word = '0 Kb'
             if item.is_node():
@@ -467,80 +481,95 @@ def main():
         print('------------------------------------------------------')
 
         # Clone data from one node to another,
-        for i in t.clone(t.query('Sub Node 1a'), t.query('Node 1a-1')):
-            i.set(3, i.path())
+        print(t.query('Sub Node 1a/Sub Node 1a/Sub Leaf 1a').path())
+
+    def examples5():
+        print('## EXAMPLE 5 ###############################################')
+        t = Tree(unique=False)
+
+        # Create item with kwargs.
+        Leaf(name='Test 2', parent=t)
+        Leaf(name='Test 3', parent=t)
+        Leaf(name='Test 3', parent=t)
+
+        node = Node(name='Test 1', parent=t)
+        Leaf(name='Test 3', parent=node)
+
+        node = Node(name='Test 1', parent=t)
+        Leaf(name='Test 3', parent=node)
+
+        node_x = Node(name='Test 1', parent=node)
+        Leaf(name='Test 3', parent=node_x)
+
+        node_y = Node(name='Test 1', parent=node_x)
+        Leaf(name='Test 3', parent=node_y)
+
+        t.reindex()
         t.show()
 
-        # Removed the node cloned.
-        x = t.query('Node 1a-1')
+        print('-- 1 ------------------------------------------------')
+        print('Find all "Test 3" items in the root of the tree, none recursive.')
+        for i in t.find_all('Test 3'):
+            print(f'{str(i.id).zfill(4)}:', i.name)
 
-        # t.reindex()
-        t.show()
+        print('-- 2 ------------------------------------------------')
+        print('Find all "Test 3" items in the tree, recursively.')
+        for i in t.find_all('Test 3', recursive=True):
+            print(f'{str(i.id).zfill(4)}:', i.name)
 
-    def test5():
+        print('-- 3 ------------------------------------------------')
+        print('Find all "Test 1/Test 3" items in the tree, recursively.')
+
+        for i in t.find_all('Test 1/Test 3', recursive=True):
+            print(f'{str(i.id).zfill(4)}:', i.name)
+
+        print('-- 4 ------------------------------------------------')
+        print('Find all "Test 1/Test 1/Test 3" items in the tree, recursively.')
+
+        for i in t.find_all('Test 1/Test 1/Test 3', recursive=True):
+            print(f'{str(i.id).zfill(4)}:', i.name)
+
+        print('-- 5 ------------------------------------------------')
+        print('Find all "Test 1/Test 1/Test 1/Test 3" items in the tree, recursively.')
+
+        for i in t.find_all('Test 1/Test 1/Test 1/Test 3', recursive=True):
+            print(f'{str(i.id).zfill(4)}:', i.name)
+
+        print('-----------------------------------------------------')
+
+    def examples6():
+        print('## EXAMPLE 6 ###############################################')
         now = datetime.now()
         dt_string = now.strftime("%Y/%m/%d %H:%M:%S")
 
-        t = Tree(headings=['Type', 'Size', 'Path'], unique=False)
+        t1 = Tree(headings=['Type', 'Date', 'Path'], unique=False)
 
-        leaf = Leaf(name='Test 3', columns=['Leaf', '0 Kb'])
-        t.append(leaf)
-        leaf.set(3, dt_string)
-        leaf.set(4, leaf.path())
+        for i in range(1, 3):
+            data2[0]['name'] = f'Node {i}'
+            items = t1.populate(data2)
+            for item in items:
+                item.set((1, 2, 3), (item.type, dt_string, item.path()))
+        t1.show()
 
-        leaf = Leaf(name='Test 3', columns=['Leaf', '0 Kb'])
-        t.append(leaf)
-        leaf.set(3, dt_string)
-        leaf.set(4, leaf.path())
+        src = t1.query('Node 1')
+        node2 = t1.query('Node 2')
 
-        # Create node with kwargs.
-        node = Node(name='Test 1', columns=['Node', '0 items'])
-        # Append the node to the tree root.
-        t.append(node)
+        t2 = Tree(headings=['Type', 'Date', 'Path'], unique=False)
 
-        leaf = Leaf(name='Test 3', columns=['Leaf', '0 Kb'])
-        node.append(leaf)
-        leaf.set(3, dt_string)
-        leaf.set(4, leaf.path())
+        for i in src.clone(t2):
+            i.set((1, 2, 3), (i.type, dt_string, i.path()))
 
-        # Create node with kwargs.
-        node = Node(name='Test 1', columns=['Node', '0 items'])
-        # Append the node to the tree root.
-        t.append(node)
+        for i in t2.query('Node n1-2-2').populate(src.to_list()):
+            i.set((1, 2, 3), (i.type, dt_string, i.path()))
 
-        leaf = Leaf(name='Test 3', columns=['Leaf', '0 Kb'])
-        node.append(leaf)
-        leaf.set(3, dt_string)
-        leaf.set(4, leaf.path())
+        for i in node2.move(t2):
+            i.set((1, 2, 3), (i.type, dt_string, i.path()))
 
-        # Create node with kwargs.
-        nodex = Node(name='Test 1', columns=['Node', '0 items'])
-        # Append the node to the tree root.
-        node.append(nodex)
+        # t.reindex()
+        t1.show()
+        t2.show()
 
-        leaf = Leaf(name='Test 3', columns=['Leaf', '0 Kb'])
-        nodex.append(leaf)
-        leaf.set(3, dt_string)
-        leaf.set(4, leaf.path())
-
-        t.show()
-
-        print('-----------------------------------------------------')
-
-        for i in t.find_all('Test 3'):
-            print(i.id, i.name, i.columns)
-
-        print('-----------------------------------------------------')
-
-        for i in t.find_all('Test 3', recursive=True):
-            print(i.id, i.name, i.columns)
-
-        print('-----------------------------------------------------')
-
-        for i in t.find_all('Test 1/Test 3', recursive=True):
-            print(i.id, i.name, i.columns)
-
-    data = [{
+    data1 = [{
         'name': 'Node 1a',
         'children': [
             {
@@ -559,7 +588,6 @@ def main():
                     {
                         'name': 'Sub Leaf 1a',
                     },
-
                     {
                         'name': 'Leaf 1a',
                     },
@@ -583,11 +611,51 @@ def main():
         ],
     }]
 
-    # test1()
-    # test2()
-    # test3()
-    # test4()
-    test5()
+    data2 = [{
+        'name': 'Node 1',
+        'children': [
+            {
+                'name': 'Leaf n1-1',
+            },
+            {
+                'name': 'Node n1-1',
+                'children': [],
+            },
+            {
+                'name': 'Leaf n1-2',
+            },
+            {
+                'name': 'Node n1-2',
+                'children': [
+                    {
+                        'name': 'Leaf n1-2-1',
+                    },
+                    {
+                        'name': 'Node n1-2-1',
+                        'children': [],
+                    },
+                    {
+                        'name': 'Leaf n1-2-2',
+                    },
+                    {
+                        'name': 'Node n1-2-2',
+                        'children': [
+                            {
+                                'name': 'Leaf n1-2-2-1',
+                            },
+                        ]
+                    },
+                ]
+            },
+        ],
+    }]
+
+    examples1()
+    examples2()
+    examples3()
+    examples4()
+    examples5()
+    examples6()
 
 
 if __name__ == '__main__':
