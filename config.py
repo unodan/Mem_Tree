@@ -1,5 +1,6 @@
 data = [{
     'name': 'Node One',
+    'columns': [None, None, None],
     'children': [
         {
             'name': 'Leaf One',
@@ -8,7 +9,7 @@ data = [{
         {
             'name': 'Node Two',
             'columns': [None, None, None],
-            'children': [None, None, None],
+            'children': [],
         },
         {
             'name': 'Leaf Two',
@@ -40,6 +41,7 @@ data = [{
                                 },
                                 {
                                     'name': 'Node Six',
+                                    'columns': [None, None, None],
                                     'children': [
                                         {
                                             'name': 'Leaf Six',

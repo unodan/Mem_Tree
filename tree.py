@@ -356,7 +356,7 @@ class Tree(Node):
 
 def main():
     def examples1():
-        print('## EXAMPLE 1 ###############################################')
+        print('\n## EXAMPLE 1 ###############################################')
         now = datetime.now()
         dt_string = now.strftime("%Y/%m/%d %H:%M:%S")
 
@@ -417,7 +417,7 @@ def main():
         def get_size(_node):
             return '1 item' if len(_node) == 1 else f'{len(_node)} items'
 
-        print('## EXAMPLE 2 ###############################################')
+        print('\n## EXAMPLE 2 ###############################################')
 
         t = Tree(headings=['Type', 'Size', 'Path'])
 
@@ -443,7 +443,7 @@ def main():
         t.show()
 
     def examples3():
-        print('## EXAMPLE 3 ###############################################')
+        print('\n## EXAMPLE 3 ###############################################')
 
         t = Tree(headings=['Type', 'Size', 'Path'])
         items = t.populate(data1)
@@ -467,7 +467,7 @@ def main():
         t.show()
 
     def examples4():
-        print('## EXAMPLE 4 ###############################################')
+        print('\n## EXAMPLE 4 ###############################################')
 
         t = Tree(headings=['Type', 'Size', 'Path'])
         items = t.populate(data1)
@@ -480,11 +480,8 @@ def main():
         t.show()
         print('------------------------------------------------------')
 
-        # Clone data from one node to another,
-        print(t.query('Sub Node 1a/Sub Node 1a/Sub Leaf 1a').path())
-
     def examples5():
-        print('## EXAMPLE 5 ###############################################')
+        print('\n## EXAMPLE 5 ###############################################')
         t = Tree(unique=False)
 
         # Create item with kwargs.
@@ -538,7 +535,7 @@ def main():
         print('-----------------------------------------------------')
 
     def examples6():
-        print('## EXAMPLE 6 ###############################################')
+        print('\n## EXAMPLE 6 ###############################################')
         now = datetime.now()
         dt_string = now.strftime("%Y/%m/%d %H:%M:%S")
 
@@ -651,11 +648,11 @@ def main():
     }]
 
     examples1()
-    examples2()
-    examples3()
-    examples4()
-    examples5()
-    examples6()
+    # examples2()
+    # examples3()
+    # examples4()
+    # examples5()
+    # examples6()
 
 
 if __name__ == '__main__':

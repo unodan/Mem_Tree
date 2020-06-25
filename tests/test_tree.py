@@ -2,14 +2,13 @@ import unittest
 import json
 from tree import Tree, Leaf, Node
 from config import data
-
 from copy import deepcopy
 
 
 class TestTree(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures, if any."""
-        self.cfg = deepcopy(data)
+        self.cfg = data
         self.t = Tree(headings=['Column1', 'Column2', 'Column3'])
         self.t.populate(data=self.cfg)
 
@@ -159,7 +158,7 @@ class TestTree(unittest.TestCase):
     def test_insert(self):
         # Action, get tree.
         t = deepcopy(self.t)
-
+        t = self.t
         # Action, set item counter to 0.
         t.items = 0
 
@@ -216,12 +215,11 @@ class TestTree(unittest.TestCase):
 
     def test_populate(self):
         # Action, get config and convert to json string.
-        cfg = deepcopy(data)
-        config_data = json.dumps(cfg, sort_keys=True)
+        config_data = json.dumps(self.cfg, sort_keys=True)
 
         # Action, create tree from config.
         t = Tree()
-        t.populate(cfg)
+        t.populate(self.cfg)
 
         # Action, convert tree to json.
         tree_data = json.dumps(t.to_list(), sort_keys=True)
@@ -268,9 +266,7 @@ class TestTree(unittest.TestCase):
         # Action, get tree.
         t = self.t
 
-        # Action, assign source and target data, complete tree.
-        cfg = deepcopy(data)
-        _list = json.dumps(cfg, sort_keys=True)
+        _list = json.dumps(self.cfg, sort_keys=True)
         _dump = json.dumps(t.to_list(), sort_keys=True)
 
         # Asert, source and target are equal.
@@ -279,7 +275,7 @@ class TestTree(unittest.TestCase):
         # Action, assign source and target data, complete node.
         node = t.query('Node Three')
         _list = json.dumps(node.to_list(), sort_keys=True)
-        _dump = json.dumps(cfg[0]['children'][3]['children'], sort_keys=True)
+        _dump = json.dumps(self.cfg[0]['children'][3]['children'], sort_keys=True)
 
         # Asert, source and target are equal.
         self.assertEqual(_list, _dump)
