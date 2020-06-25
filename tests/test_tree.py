@@ -1,5 +1,5 @@
 import unittest
-import json
+from json import dumps
 from tree import Tree, Leaf, Node
 from config import data
 from copy import deepcopy
@@ -14,17 +14,6 @@ class TestTree(unittest.TestCase):
 
     def tearDown(self):
         """Tear down test fixtures, if any."""
-
-    def test_find(self):
-        # Action, get tree
-        t = self.t
-
-        # Asert, that we get the correct cell value.
-        self.assertEqual('Node One', t[0].get(0))
-        self.assertEqual('Node One', t.find_by_name('Node One').get(0))
-
-        print(t.find_by_name('/Node One').name)
-        print(t.find_by_name('Node Four').name)
 
     def test_get(self):
         # Action, get tree
@@ -86,6 +75,22 @@ class TestTree(unittest.TestCase):
         self.assertEqual('Three', node.get(3))
         self.assertEqual(('One', 'Two', 'Three'), node.get((1, 2, 3)))
         self.assertEqual(node.get(), ('Some Name', 'One', 'Two', 'Three'))
+
+    def test_find(self):
+        # Action, get tree
+        t = self.t
+
+        # Asert, that we get the correct cell value.
+        _id = t.query('Node One').id
+        self.assertEqual('Node One', t[0].get(0))
+        self.assertEqual('Node One', t.find_by_id(_id).get(0))
+        self.assertEqual('Node One', t.find('Node One').get(0))
+
+        # Asert, that we get the correct cell value.
+        _id = t.query('Node Four').id
+        self.assertEqual('Node Four', t[0][3][1].get(0))
+        self.assertEqual('Node Four', t.find_by_id(_id).get(0))
+        self.assertEqual('Node Four', t.find('Node Four').get(0))
 
     def test_path(self):
         # Action, get tree
@@ -215,14 +220,14 @@ class TestTree(unittest.TestCase):
 
     def test_populate(self):
         # Action, get config and convert to json string.
-        config_data = json.dumps(self.cfg, sort_keys=True)
+        config_data = dumps(self.cfg, sort_keys=True)
 
         # Action, create tree from config.
         t = Tree()
         t.populate(self.cfg)
 
         # Action, convert tree to json.
-        tree_data = json.dumps(t.to_list(), sort_keys=True)
+        tree_data = dumps(t.to_list(), sort_keys=True)
 
         # Asert, that the tree contains the populate data.
         self.assertEqual(tree_data, config_data)
@@ -266,16 +271,16 @@ class TestTree(unittest.TestCase):
         # Action, get tree.
         t = self.t
 
-        _list = json.dumps(self.cfg, sort_keys=True)
-        _dump = json.dumps(t.to_list(), sort_keys=True)
+        _list = dumps(self.cfg, sort_keys=True)
+        _dump = dumps(t.to_list(), sort_keys=True)
 
         # Asert, source and target are equal.
         self.assertEqual(_list, _dump)
 
         # Action, assign source and target data, complete node.
         node = t.query('Node Three')
-        _list = json.dumps(node.to_list(), sort_keys=True)
-        _dump = json.dumps(self.cfg[0]['children'][3]['children'], sort_keys=True)
+        _list = dumps(node.to_list(), sort_keys=True)
+        _dump = dumps(self.cfg[0]['children'][3]['children'], sort_keys=True)
 
         # Asert, source and target are equal.
         self.assertEqual(_list, _dump)

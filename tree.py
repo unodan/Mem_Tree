@@ -126,7 +126,12 @@ class Node(Base, deque):
             self.delete()
             return items
 
-    def show(self, parent=None, indent=2, index_pad=4):
+    def show(self, **kwargs):
+        label = kwargs.get('label', '')
+        indent = kwargs.get('indent', 2)
+        index_pad = kwargs.get('index_pad', 2)
+        parent = kwargs.get('parent', self)
+
         def walk(_parent, level=0):
             if not _parent.is_node():
                 return _parent
@@ -139,16 +144,18 @@ class Node(Base, deque):
                     walk(_node, level+1)
 
         header_postfix = f', Columns: {str(self.tree.headings)}' if self.tree.headings else ''
+        if label:
+            label = f' {label}\n'
         print('-----------------------------------------------------')
-        print(f'   ID: Name{header_postfix}')
+        print(f'{label}   ID: Name{header_postfix}')
         print('-----------------------------------------------------')
-        walk(parent if parent else self)
+        walk(parent)
 
     def query(self, query):
         if isinstance(query, int):
             item = self.find_by_id(query)
         elif isinstance(query, str):
-            item = self.find_by_name(query)
+            item = self.find(query)
         else:
             item = None
 
@@ -292,17 +299,22 @@ class Node(Base, deque):
                 if result is not None:
                     return result
 
-    def find_by_name(self, query):
-        def find(parent, _query):
+    def find(self, query, **kwargs):
+        def search(parent, _query):
             for _child in parent:
                 if _child.name == _query:
                     return _child
 
             for _child in parent:
                 if _child.is_node():
-                    result = find(_child, _query)
+                    result = search(_child, _query)
                     if result is not None:
                         return result
+
+        _all = kwargs.get('all', False)
+
+        if _all:
+            return self.find_all(query, recursive=True)
 
         if '/' in query:
             if query.startswith('/'):
@@ -314,14 +326,14 @@ class Node(Base, deque):
                         break
             else:
                 parts = query.split('/', 1)
-                item = find(self, parts.pop(0))
+                item = search(self, parts.pop(0))
 
             if item and query in item.path():
                 return item
             elif item:
-                return item.find_by_name(parts[0])
+                return item.find(parts[0])
         else:
-            return find(self, query)
+            return search(self, query)
 
 
 class Tree(Node):
@@ -333,6 +345,7 @@ class Tree(Node):
 
         self.id = 0
         self.name = '.'
+        self.label = kwargs.get('label', '')
         self.type = 'Tree'
         self.parent = None
 
@@ -546,7 +559,7 @@ def main():
             items = t1.populate(data2)
             for item in items:
                 item.set((1, 2, 3), (item.type, dt_string, item.path()))
-        t1.show()
+        t1.show(label='Tree: One')
 
         src = t1.query('Node 1')
         node2 = t1.query('Node 2')
@@ -562,9 +575,9 @@ def main():
         for i in node2.move(t2):
             i.set((1, 2, 3), (i.type, dt_string, i.path()))
 
-        # t.reindex()
-        t1.show()
-        t2.show()
+        t1.show(label='Tree: One')
+
+        t2.show(label='Tree: Two')
 
     data1 = [{
         'name': 'Node 1a',
@@ -647,12 +660,12 @@ def main():
         ],
     }]
 
-    examples1()
+    # examples1()
     # examples2()
     # examples3()
     # examples4()
     # examples5()
-    # examples6()
+    examples6()
 
 
 if __name__ == '__main__':
