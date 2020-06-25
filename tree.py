@@ -2,8 +2,6 @@ from enum import IntEnum
 from datetime import datetime
 from collections import deque
 
-import cProfile, pstats, io
-
 const = IntEnum('Constants', 'END START', start=-1)
 
 
@@ -314,7 +312,7 @@ class Node(Base, deque):
         _all = kwargs.get('all', False)
 
         if _all:
-            return self.find_all(query, recursive=True)
+            return self.find_all(query, recursive=kwargs.get('recursive', True))
 
         if '/' in query:
             if query.startswith('/'):
@@ -374,7 +372,7 @@ def main():
         dt_string = now.strftime("%Y/%m/%d %H:%M:%S")
 
         # Create a tree one item at a time, using either kwargs or a dictionary.
-        t = Tree(headings=['Type', 'Size', 'Last Modified', 'Path'])
+        t = Tree(headings=['Type', 'Size', 'Last Modified', 'Path', 'Test'])
 
         # Create node with kwargs.
         node = Node(name='Test 1', columns=['Node', '0 items'])
@@ -422,7 +420,7 @@ def main():
         leaf.set((1, 2, 3, 4), (leaf.type, '0 Kb', dt_string, leaf.path()))
 
         # Update 3 column values.
-        node.set((2, 3, 4), ('1 item', dt_string, leaf.path()))
+        node.set((2, 3, 4), (f'{len(node)} item', dt_string, leaf.path()))
 
         t.show()
 
@@ -432,7 +430,7 @@ def main():
 
         print('\n## EXAMPLE 2 ###############################################')
 
-        t = Tree(headings=['Type', 'Size', 'Path'])
+        t = Tree(headings=['Type', 'Size', 'Path', ''])
 
         node = t.append(Node(name='Test Node 1'))
         node.set((1, 3), (node.type, node.path()))
@@ -466,6 +464,7 @@ def main():
             if item.is_node():
                 word = '1 item' if len(item) == 1 else f'{len(item)} items'
             item.set((1, 2, 3), (item.type, word, item.path()))
+        t.reindex()
         t.show()
 
         items = t.query('Node 1a-1').populate(data1)
@@ -474,6 +473,7 @@ def main():
             if item.is_node():
                 word = '1 item' if len(item) == 1 else f'{len(item)} items'
             item.set((1, 2, 3), (item.type, word, item.path()))
+        t.reindex()
         t.show()
 
         t.reindex()
@@ -514,12 +514,11 @@ def main():
         node_y = Node(name='Test 1', parent=node_x)
         Leaf(name='Test 3', parent=node_y)
 
-        t.reindex()
         t.show()
 
         print('-- 1 ------------------------------------------------')
         print('Find all "Test 3" items in the root of the tree, none recursive.')
-        for i in t.find('Test 3', all=True):
+        for i in t.find('Test 3', recursive=False, all=True):
             print(f'{str(i.id).zfill(4)}:', i.name)
 
         print('-- 2 ------------------------------------------------')
@@ -571,6 +570,8 @@ def main():
 
         for i in t2.query('Node n1-2-2').populate(src.to_list()):
             i.set((1, 2, 3), (i.type, dt_string, i.path()))
+
+        t2.show(label='Tree: Two')
 
         for i in node2.move(t2):
             i.set((1, 2, 3), (i.type, dt_string, i.path()))
