@@ -519,30 +519,30 @@ def main():
 
         print('-- 1 ------------------------------------------------')
         print('Find all "Test 3" items in the root of the tree, none recursive.')
-        for i in t.find_all('Test 3'):
+        for i in t.find('Test 3', all=True):
             print(f'{str(i.id).zfill(4)}:', i.name)
 
         print('-- 2 ------------------------------------------------')
         print('Find all "Test 3" items in the tree, recursively.')
-        for i in t.find_all('Test 3', recursive=True):
+        for i in t.find('Test 3', all=True):
             print(f'{str(i.id).zfill(4)}:', i.name)
 
         print('-- 3 ------------------------------------------------')
         print('Find all "Test 1/Test 3" items in the tree, recursively.')
 
-        for i in t.find_all('Test 1/Test 3', recursive=True):
+        for i in t.find('Test 1/Test 3', all=True):
             print(f'{str(i.id).zfill(4)}:', i.name)
 
         print('-- 4 ------------------------------------------------')
         print('Find all "Test 1/Test 1/Test 3" items in the tree, recursively.')
 
-        for i in t.find_all('Test 1/Test 1/Test 3', recursive=True):
+        for i in t.find('Test 1/Test 1/Test 3', all=True):
             print(f'{str(i.id).zfill(4)}:', i.name)
 
         print('-- 5 ------------------------------------------------')
         print('Find all "Test 1/Test 1/Test 1/Test 3" items in the tree, recursively.')
 
-        for i in t.find_all('Test 1/Test 1/Test 1/Test 3', recursive=True):
+        for i in t.find('Test 1/Test 1/Test 1/Test 3', all=True):
             print(f'{str(i.id).zfill(4)}:', i.name)
 
         print('-----------------------------------------------------')
@@ -664,8 +664,8 @@ def main():
     # examples2()
     # examples3()
     # examples4()
-    # examples5()
-    examples6()
+    examples5()
+    # examples6()
 
 
 if __name__ == '__main__':
